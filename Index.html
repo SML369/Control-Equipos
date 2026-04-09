@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dermato Control</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f0f4f8;color:#2d3748;font-size:14px}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:215px;background:#2d3748;color:white;display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-logo{padding:16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sidebar-logo h2{font-size:14px;font-weight:700;color:white;margin-bottom:2px}
+.sidebar-logo p{font-size:11px;color:rgba(255,255,255,0.5)}
+.nav-item{padding:9px 16px;cursor:pointer;font-size:12px;color:rgba(255,255,255,0.7);transition:all 0.2s}
+.nav-item:hover{background:rgba(255,255,255,0.1);color:white}
+.nav-item.active{background:rgba(102,126,234,0.4);color:white;border-right:3px solid #667eea}
+.nav-section{padding:10px 16px 3px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.3)}
+.main{flex:1;overflow-y:auto;background:#f0f4f8}
+.page{display:none;padding:20px}
+.page.active{display:block}
+.page-header{margin-bottom:16px}
+.page-header h1{font-size:19px;font-weight:700;color:#2d3748}
+.page-header p{font-size:12px;color:#718096;margin-top:3px}
+.card{background:white;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,0.08);margin-bottom:14px}
+.card-title{font-size:12px;font-weight:700;color:#4a5568;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.5px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-group label{font-size:11px;color:#718096;font-weight:600}
+.form-group input,.form-group select,.form-group textarea{padding:7px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;color:#2d3748;background:white;outline:none;transition:border-color 0.2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#667eea}
+.form-group textarea{resize:vertical;min-height:52px}
+.form-full{grid-column:1/-1}
+.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.2s}
+.btn-primary{background:#667eea;color:white}.btn-primary:hover{background:#5a67d8}
+.btn-success{background:#48bb78;color:white}.btn-success:hover{background:#38a169}
+.btn-danger{background:#fc8181;color:white}.btn-danger:hover{background:#f56565}
+.btn-outline{background:white;color:#667eea;border:1px solid #667eea}.btn-outline:hover{background:#667eea;color:white}
+.btn-warning{background:#ed8936;color:white}.btn-warning:hover{background:#c05621}
+.btn-sm{padding:4px 9px;font-size:11px}
+.result-box{background:#f7fafc;border:1px solid #e2e8f0;border-radius:9px;padding:14px;margin-top:10px}
+.result-box.hidden{display:none}
+.result-title{font-size:11px;color:#718096;margin-bottom:8px;font-weight:600;text-transform:uppercase}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.result-item{background:white;border-radius:7px;padding:9px;border:1px solid #e2e8f0;text-align:center}
+.result-item .val{font-size:13px;font-weight:700;color:#2d3748}
+.result-item .lbl{font-size:10px;color:#a0aec0;margin-top:2px}
+.result-item.highlight{border-color:#667eea;background:#ebf4ff}.result-item.highlight .val{color:#667eea}
+.result-item.warning{border-color:#ed8936;background:#fffaf0}.result-item.warning .val{color:#ed8936}
+.result-item.success{border-color:#48bb78;background:#f0fff4}.result-item.success .val{color:#38a169}
+.result-item.danger{border-color:#fc8181;background:#fff5f5}.result-item.danger .val{color:#e53e3e}
+.result-item.purple{border-color:#9f7aea;background:#faf5ff}.result-item.purple .val{color:#6b46c1}
+.table-wrap{overflow-x:auto;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#f7fafc;padding:7px 9px;text-align:left;font-weight:600;color:#4a5568;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+td{padding:7px 9px;border-bottom:1px solid #f0f4f8;color:#2d3748;vertical-align:middle}
+tr:hover td{background:#f7fafc}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600}
+.badge-carolina{background:#fce7f3;color:#be185d}
+.badge-sneider{background:#e0e7ff;color:#3730a3}
+.badge-cosmetologa{background:#d1fae5;color:#065f46}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:white;border-radius:9px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.08);text-align:center}
+.stat-card .number{font-size:22px;font-weight:700;color:#2d3748}
+.stat-card .label{font-size:10px;color:#a0aec0;margin-top:3px}
+.filter-bar{display:flex;gap:7px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.filter-bar select,.filter-bar input{padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none}
+.empty{text-align:center;padding:36px;color:#a0aec0;font-size:12px}
+.pct-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pct-item{display:flex;justify-content:space-between;align-items:center;padding:9px 11px;background:#f7fafc;border-radius:7px;border:1px solid #e2e8f0}
+.pct-item label{font-size:11px;color:#4a5568;font-weight:600}
+.pct-item input{width:55px;padding:3px 5px;border:1px solid #e2e8f0;border-radius:5px;font-size:12px;text-align:right}
+.actions{display:flex;gap:7px;margin-top:14px;justify-content:flex-end}
+.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px}
+.tag-ultra{background:#fef3c7;color:#92400e}
+.tag-vol{background:#ede9fe;color:#5b21b6}
+.tag-aqua{background:#cffafe;color:#155e75}
+.tag-volformer{background:#fce7f3;color:#be185d}
+.trans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:6px}
+.trans-card{border:2px solid #e2e8f0;border-radius:7px;padding:8px;cursor:pointer;transition:all 0.2s;text-align:center}
+.trans-card:hover{border-color:#667eea;background:#ebf4ff}
+.trans-card.selected{border-color:#667eea;background:#667eea;color:white}
+.trans-card .c-name{font-size:11px;font-weight:700}
+.trans-card .c-type{font-size:9px;opacity:0.7;margin-top:1px}
+.trans-card .c-shots{font-size:9px;margin-top:2px;opacity:0.85}
+.progress-bar{height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-top:3px}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.3s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;overflow-y:auto;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:white;border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:6px;text-align:center}
+.modal p{font-size:12px;color:#718096;margin-bottom:16px;text-align:center}
+.modal-btns{display:flex;gap:7px;justify-content:center;margin-top:14px}
+.login-screen{position:fixed;inset:0;background:#2d3748;display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-screen.hidden{display:none}
+.login-box{background:white;border-radius:14px;padding:32px;max-width:320px;width:90%;text-align:center}
+.login-box h1{font-size:18px;font-weight:700;margin-bottom:5px;color:#2d3748}
+.login-box p{font-size:12px;color:#718096;margin-bottom:20px}
+.login-box input{width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:14px;text-align:center;letter-spacing:4px;margin-bottom:9px;outline:none}
+.login-err{font-size:11px;color:#e53e3e;margin-bottom:8px;min-height:16px}
+.disparo-row{background:#fffbeb;border:1px solid #fbd38d;border-radius:7px;padding:11px;margin-top:10px}
+.disparo-row .dr-title{font-size:11px;font-weight:700;color:#744210;margin-bottom:7px}
+.inv-badge{padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block}
+.inv-badge.activo{background:#d1fae5;color:#065f46}
+.inv-badge.agotado{background:#fee2e2;color:#991b1b}
+.inv-badge.bajo{background:#fef3c7;color:#92400e}
+.inv-badge.retirado{background:#e5e7eb;color:#6b7280}
+.section-divider{border:none;border-top:2px solid #e2e8f0;margin:14px 0}
+.warn-box{background:#fffbeb;border:1px solid #fbd38d;border-radius:7px;padding:10px;font-size:11px;color:#744210;margin-top:8px}
+.info-box{background:#ebf4ff;border:1px solid #bee3f8;border-radius:7px;padding:10px;font-size:11px;color:#2b6cb0;margin-top:8px}
+.topbar{display:none;background:#2d3748;color:white;padding:12px 16px;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h2{font-size:14px;font-weight:700}
+.topbar-user{font-size:11px;color:rgba(255,255,255,0.6)}
+.hamburger{background:none;border:none;cursor:pointer;padding:4px;display:flex;flex-direction:column;gap:4px}
+.hamburger span{display:block;width:22px;height:2px;background:white;border-radius:2px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99}
+@media(max-width:700px){
+  .app{flex-direction:column}
+  .sidebar{position:fixed;top:0;left:-215px;height:100vh;z-index:100;transition:left 0.25s;width:215px}
+  .sidebar.open{left:0}
+  .sidebar-overlay.open{display:block}
+  .topbar{display:flex}
+  .main{flex:1;overflow-y:auto}
+  .page{padding:12px}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid-3{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .result-grid{grid-template-columns:1fr 1fr}
+  .two-col{grid-template-columns:1fr}
+  .trans-grid{grid-template-columns:1fr 1fr}
+  .modal{padding:18px}
+  table{font-size:10px}
+  th,td{padding:5px 6px}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <h1>Dermato Control</h1>
+    <p>Ingresa tu PIN de acceso</p>
+    <input type="password" id="login-pin" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')tryLogin()">
+    <div class="login-err" id="login-err"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="tryLogin()">Ingresar</button>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR SESION -->
+<div class="modal-overlay hidden" id="modal-delete">
+  <div class="modal">
+    <h2>Eliminar sesión</h2>
+    <p>Ingresa el código de autorización para eliminar este registro.</p>
+    <input type="password" id="del-code" maxlength="6" placeholder="••••••"
+      style="width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:15px;text-align:center;letter-spacing:4px;margin-bottom:7px;outline:none"
+      onkeydown="if(event.key==='Enter')confirmarDelete()">
+    <div style="font-size:11px;color:#e53e3e;min-height:14px;margin-bottom:4px" id="del-err"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalDelete()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR SESION — paso 1: código -->
+<div class="modal-overlay hidden" id="modal-edit-auth">
+  <div class="modal">
+    <h2>Editar sesión</h2>
+    <p>Ingresa el código de autorización para editar este registro.</p>
+    <input type="password" id="edit-auth-code" maxlength="6" placeholder="••••••"
+      style="width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:15px;text-align:center;letter-spacing:4px;margin-bottom:7px;outline:none"
+      onkeydown="if(event.key==='Enter')confirmarEditAuth()">
+    <div style="font-size:11px;color:#e53e3e;min-height:14px;margin-bottom:4px" id="edit-auth-err"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalEditAuth()">Cancelar</button>
+      <button class="btn btn-warning" onclick="confirmarEditAuth()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR SESION — paso 2: formulario -->
+<div class="modal-overlay hidden" id="modal-edit-form">
+  <div class="modal" style="max-width:560px">
+    <h2>Editar sesión</h2>
+    <p id="edit-form-subtitle" style="margin-bottom:14px"></p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre del paciente</label>
+        <input type="text" id="ef-paciente">
+      </div>
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="ef-fecha">
+      </div>
+      <div class="form-group">
+        <label>Médico</label>
+        <select id="ef-medico">
+          <option value="Carolina">Carolina</option>
+          <option value="Sneider">Sneider</option>
+          <option value="Cosmetologa">Cosmetóloga</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cosmetóloga</label>
+        <input type="text" id="ef-cosmetologa" placeholder="Solo si aplica">
+      </div>
+      <div class="form-group">
+        <label>Precio cobrado</label>
+        <input type="number" id="ef-precio">
+      </div>
+      <div class="form-group">
+        <label>Descuento (%)</label>
+        <input type="number" id="ef-descuento" min="0" max="100">
+      </div>
+      <div class="form-group">
+        <label>Razón del descuento</label>
+        <input type="text" id="ef-descuento-razon">
+      </div>
+      <div class="form-group">
+        <label>Cuenta de pago</label>
+        <select id="ef-cuenta">
+          <option value="Carolina">Carolina</option>
+          <option value="Sneider">Sneider</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>¿Quién trajo el paciente?</label>
+        <select id="ef-referido"></select>
+      </div>
+      <div class="form-group">
+        <label>Notas</label>
+        <input type="text" id="ef-notas">
+      </div>
+    </div>
+    <div style="font-size:11px;color:#718096;background:#f7fafc;border-radius:7px;padding:8px;margin-top:10px">
+      Los campos de equipo, zona, transductores y disparos no se pueden editar aquí por integridad del inventario. Si hay un error en esos campos, elimina la sesión y vuelve a registrarla.
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalEditForm()">Cancelar</button>
+      <button class="btn btn-warning" onclick="guardarEdicion()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR TRANSDUCTOR -->
+<div class="modal-overlay hidden" id="modal-trans">
+  <div class="modal">
+    <h2 id="modal-trans-title">Agregar transductor</h2>
+    <p>Registra una nueva unidad en el inventario</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="nt-tipo" onchange="onNtTipoChange()">
+          <option value="Lineal">Lineal</option>
+          <option value="Booster">Booster</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Medida</label>
+        <select id="nt-medida"></select>
+      </div>
+      <div class="form-group">
+        <label>Disparos ya usados (0 si es nuevo)</label>
+        <input type="number" id="nt-usados" value="0" min="0">
+      </div>
+      <div class="form-group">
+        <label>Fecha de compra</label>
+        <input type="date" id="nt-fecha">
+      </div>
+      <div class="form-group form-full">
+        <label>Etiqueta personalizada (opcional)</label>
+        <input type="text" id="nt-etiqueta" placeholder="Ej: T-01, Nuevo abril…">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalTrans()">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarAgregarTransductor()">Agregar al inventario</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR SOLUCION AQUAPURE -->
+<div class="modal-overlay hidden" id="modal-solucion">
+  <div class="modal">
+    <h2>Registrar compra de solución</h2>
+    <p>Trazabilidad de insumos Aquapure</p>
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label>Solución</label>
+        <select id="ns-tipo">
+          <option value="PEEL+">Aquasolution PEEL+ (ácido salicílico / limpieza profunda)</option>
+          <option value="SEBUM+">Aquasolution SEBUM+ (exfoliación / control de grasa)</option>
+          <option value="REJUVE+">Aquasolution REJUVE+ (hidratación / antioxidante)</option>
+          <option value="CLEANSYS">CLEANSYS (limpieza interna del sistema)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cantidad comprada</label>
+        <input type="number" id="ns-cantidad" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Fecha de compra</label>
+        <input type="date" id="ns-fecha">
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalSolucion()">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarAgregarSolucion()">Registrar compra</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GESTIONAR REFERIDOS -->
+<div class="modal-overlay hidden" id="modal-referidos">
+  <div class="modal" style="max-width:400px">
+    <h2>Gestionar referidos</h2>
+    <p>Personas que pueden traer pacientes</p>
+    <div id="lista-referidos-edit" style="margin-bottom:12px"></div>
+    <div class="form-grid" style="margin-bottom:8px">
+      <div class="form-group">
+        <label>Nuevo nombre</label>
+        <input type="text" id="nuevo-referido-nombre" placeholder="Nombre">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="nuevo-referido-tipo">
+          <option value="cosmetologa">Cosmetóloga (comisión)</option>
+          <option value="medico">Médico (sin comisión)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-success btn-sm" onclick="agregarReferido()">+ Agregar</button>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="cerrarModalReferidos()">Listo</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
+
+<!-- TOPBAR MÓVIL -->
+<div class="topbar" id="topbar">
+  <button class="hamburger" onclick="toggleSidebar()">
+    <span></span><span></span><span></span>
+  </button>
+  <h2>Dermato Control</h2>
+  <span class="topbar-user" id="topbar-user-label"></span>
+</div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h2>Dermato Control</h2>
+    <p id="sidebar-user-label">Gestión de equipos</p>
+  </div>
+  <div class="nav-section">Registro</div>
+  <div class="nav-item active" data-page="nueva" onclick="goPage(this)">+ Nueva Sesión</div>
+  <div class="nav-section">Reportes</div>
+  <div class="nav-item" data-page="sesiones" onclick="goPage(this)">Historial</div>
+  <div class="nav-item" data-page="pacientes" onclick="goPage(this)">Por paciente</div>
+  <div class="nav-item" data-page="financiero" onclick="goPage(this)">Resumen financiero</div>
+  <div class="nav-section">Inventario</div>
+  <div class="nav-item" data-page="inv-ultra" onclick="goPage(this)">Transductores Ultraformer</div>
+  <div class="nav-item" data-page="inv-vol" onclick="goPage(this)">Transductores Volnewmer</div>
+  <div class="nav-item" data-page="inv-aqua" onclick="goPage(this)">Soluciones Aquapure</div>
+  <div class="nav-section">Sistema</div>
+  <div class="nav-item" data-page="config" onclick="goPage(this)">Configuración</div>
+  <div style="flex:1"></div>
+  <div class="nav-item" onclick="cerrarSesion()" style="border-top:1px solid rgba(255,255,255,0.1)">Cerrar sesión</div>
+</div>
+
+<div class="main">
+
+<!-- NUEVA SESION -->
+<div class="page active" id="page-nueva">
+  <div class="page-header"><h1>Nueva sesión</h1><p>Registra una sesión con un paciente</p></div>
+  <div class="card">
+    <div class="card-title">Datos generales</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre del paciente</label>
+        <input type="text" id="f-paciente" placeholder="Ej: María García" oninput="autocompletePaciente(this.value)">
+        <div id="autocomplete-list" style="position:relative"></div>
+      </div>
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="f-fecha">
+      </div>
+      <div class="form-group">
+        <label>Equipo</label>
+        <select id="f-equipo" onchange="onEquipoChange()">
+          <option value="">Seleccionar equipo...</option>
+          <option value="ultraformer">Ultraformer</option>
+          <option value="volnewmer">Volnewmer</option>
+          <option value="volformer">Volformer (Ultraformer + Volnewmer)</option>
+          <option value="aquapure">Aquapure</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Médico que atiende</label>
+        <select id="f-medico" onchange="calcular()">
+          <option value="">Seleccionar médico...</option>
+          <option value="Carolina">Carolina</option>
+          <option value="Sneider">Sneider</option>
+        </select>
+      </div>
+      <div class="form-group" id="campo-zona-wrap">
+        <label>Zona / Protocolo</label>
+        <select id="f-zona" onchange="onZonaChange()">
+          <option value="">Seleccionar zona...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Precio sesión</label>
+        <input type="number" id="f-precio" min="0" placeholder="Se llena al elegir zona" oninput="calcular()">
+      </div>
+      <!-- Descuento -->
+      <div class="form-group">
+        <label>Descuento (%)</label>
+        <input type="number" id="f-descuento" min="0" max="100" value="0" oninput="onDescuentoInput()">
+      </div>
+      <div class="form-group">
+        <label>Razón del descuento</label>
+        <input type="text" id="f-descuento-razon" placeholder="Ej: Día de la madre">
+      </div>
+      <!-- Solo costo disparos -->
+      <div class="form-group form-full" id="campo-solo-disparos" style="display:none">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="f-solo-disparos" onchange="toggleSoloDisparos()" style="width:16px;height:16px;cursor:pointer">
+          <span>Cobrar solo el costo de los disparos (familiar / cortesía)</span>
+        </label>
+        <div id="solo-disparos-info" style="display:none;margin-top:6px;font-size:11px;color:#744210;background:#fffbeb;border:1px solid #fbd38d;border-radius:7px;padding:8px">
+          El precio se ajustará automáticamente al costo total de disparos una vez ingreses los transductores usados.
+        </div>
+      </div>
+      <!-- Paquete -->
+      <div class="form-group form-full">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="f-es-paquete" onchange="togglePaquete()" style="width:16px;height:16px;cursor:pointer">
+          <span>¿Esta sesión hace parte de un paquete?</span>
+        </label>
+      </div>
+      <div id="bloque-paquete" style="display:none;grid-column:1/-1">
+        <div class="form-grid" style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:12px">
+          <div class="form-group">
+            <label>Sesión # del paquete</label>
+            <input type="number" id="f-nsesion" min="1" value="1">
+          </div>
+          <div class="form-group">
+            <label>Total de sesiones del paquete</label>
+            <input type="number" id="f-total-sesiones" min="1" value="3">
+          </div>
+          <div class="form-group form-full">
+            <label>Notas del paquete (precio acordado, condiciones, etc.)</label>
+            <input type="text" id="f-notas-paquete" placeholder="Ej: Paquete de 3 sesiones acordado a $1.200.000 total">
+          </div>
+        </div>
+      </div>
+      <!-- Referido -->
+      <div class="form-group">
+        <label>¿Quién trajo el paciente?</label>
+        <select id="f-referido" onchange="calcular()">
+          <option value="">Sin referido</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cuenta donde fue pagado</label>
+        <select id="f-cuenta">
+          <option value="">Seleccionar...</option>
+          <option value="Carolina">Carolina</option>
+          <option value="Sneider">Sneider</option>
+        </select>
+      </div>
+      <!-- Cosmetóloga (Aquapure) -->
+      <div class="form-group" id="campo-cosmetologa" style="display:none">
+        <label>Nombre de la cosmetóloga</label>
+        <input type="text" id="f-cosmetologa" placeholder="Ej: Laura Martínez" list="cosmetologas-list">
+        <datalist id="cosmetologas-list"></datalist>
+      </div>
+      <div class="form-group form-full">
+        <label>Notas / observaciones</label>
+        <textarea id="f-notas" placeholder="Observaciones clínicas, reacciones, etc."></textarea>
+      </div>
+    </div>
+
+    <!-- BLOQUE ULTRAFORMER -->
+    <div id="bloque-ultra" style="display:none;margin-top:12px">
+      <div class="disparo-row">
+        <div class="dr-title">Transductores Ultraformer</div>
+        <div style="font-size:11px;color:#92400e;margin-bottom:8px">
+          Disparos recomendados: <strong id="ultra-ref-label">—</strong>
+          <input type="hidden" id="ultra-disparos-ref">
+        </div>
+        <div id="ultra-entradas-lista"></div>
+        <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="agregarEntrada('ultra')">+ Agregar transductor</button>
+        <div id="ultra-total-status" style="margin-top:8px;font-size:11px;color:#4a5568;background:#f7fafc;border-radius:7px;padding:8px;display:none">
+          Total disparos: <strong id="ultra-total-val">0</strong>
+          <span id="ultra-shots-diff" style="margin-left:8px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOQUE VOLNEWMER -->
+    <div id="bloque-vol" style="display:none;margin-top:12px">
+      <div class="disparo-row" style="border-color:#c4b5fd;background:#faf5ff">
+        <div class="dr-title" style="color:#5b21b6">Transductores Volnewmer</div>
+        <div style="font-size:11px;color:#5b21b6;margin-bottom:8px">
+          Disparos recomendados: <strong id="vol-ref-label">—</strong>
+          <input type="hidden" id="vol-disparos-ref">
+        </div>
+        <div id="vol-entradas-lista"></div>
+        <button class="btn btn-sm" style="margin-top:8px;background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd" onclick="agregarEntrada('vol')">+ Agregar transductor Volnewmer</button>
+        <div id="vol-total-status" style="margin-top:8px;font-size:11px;color:#4a5568;background:#f7fafc;border-radius:7px;padding:8px;display:none">
+          Total disparos Volnewmer: <strong id="vol-total-val">0</strong>
+          <span id="vol-shots-diff" style="margin-left:8px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROTOCOLO VOLNEWMER EN VOLFORMER -->
+    <div id="bloque-vol-zona" style="display:none;margin-top:10px">
+      <div class="form-group">
+        <label style="color:#5b21b6;font-weight:700">Protocolo Volnewmer (dentro del Volformer)</label>
+        <select id="f-zona-vol" onchange="onZonaVolChange()">
+          <option value="">Seleccionar zona Volnewmer...</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="result-box hidden" id="result-box">
+      <div class="result-title">Desglose financiero</div>
+      <div class="result-grid" id="result-grid"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-outline" onclick="limpiarForm()">Limpiar</button>
+      <button class="btn btn-primary" onclick="guardarSesion()">Guardar sesión</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORIAL -->
+<div class="page" id="page-sesiones">
+  <div class="page-header"><h1>Historial de sesiones</h1><p>Todas las sesiones registradas</p></div>
+  <div class="card">
+    <div class="filter-bar">
+      <select id="fil-equipo" onchange="renderSesiones()">
+        <option value="">Todos los equipos</option>
+        <option value="ultraformer">Ultraformer</option>
+        <option value="volnewmer">Volnewmer</option>
+        <option value="volformer">Volformer</option>
+        <option value="aquapure">Aquapure</option>
+      </select>
+      <select id="fil-medico" onchange="renderSesiones()">
+        <option value="">Todos los médicos</option>
+        <option value="Carolina">Carolina</option>
+        <option value="Sneider">Sneider</option>
+      </select>
+      <input type="text" id="fil-buscar" placeholder="Buscar paciente..." oninput="renderSesiones()" style="flex:1;min-width:100px">
+      <button class="btn btn-outline btn-sm" onclick="exportarExcel()">Exportar Excel</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Paciente</th><th>Equipo</th><th>Zona</th><th>Precio</th><th>Desc.</th><th>Médico</th><th>Sesión</th><th>Referido</th><th>Registró</th><th>Cuenta</th><th>Acc.</th></tr></thead>
+        <tbody id="tabla-sesiones"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- POR PACIENTE -->
+<div class="page" id="page-pacientes">
+  <div class="page-header"><h1>Por paciente</h1><p>Historial y resumen por paciente</p></div>
+  <div class="card">
+    <div class="filter-bar">
+      <input type="text" id="buscar-paciente" placeholder="Buscar paciente..." oninput="renderPacientes()" style="flex:1">
+    </div>
+    <div id="lista-pacientes"></div>
+  </div>
+</div>
+
+<!-- FINANCIERO -->
+<div class="page" id="page-financiero">
+  <div class="page-header"><h1>Resumen financiero</h1><p>Ingresos y distribución por equipo y socio</p></div>
+  <div id="stats-container"></div>
+</div>
+
+<!-- INVENTARIO ULTRAFORMER -->
+<div class="page" id="page-inv-ultra">
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div><h1>Transductores Ultraformer</h1><p>Unidades físicas, disparos disponibles y estado</p></div>
+      <button class="btn btn-success" onclick="abrirModalTrans('ultra')">+ Agregar transductor</button>
+    </div>
+  </div>
+  <div id="inv-ultra-container"></div>
+</div>
+
+<!-- INVENTARIO VOLNEWMER -->
+<div class="page" id="page-inv-vol">
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div><h1>Transductores Volnewmer</h1><p>Punteras (0.25mm, 3mm, 4mm, 16mm) y disparos disponibles</p></div>
+      <button class="btn btn-success" onclick="abrirModalTrans('vol')">+ Agregar transductor</button>
+    </div>
+  </div>
+  <div id="inv-vol-container"></div>
+</div>
+
+<!-- INVENTARIO AQUAPURE -->
+<div class="page" id="page-inv-aqua">
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div><h1>Soluciones Aquapure</h1><p>Trazabilidad de compras de insumos</p></div>
+      <button class="btn btn-success" onclick="abrirModalSolucion()">+ Registrar compra</button>
+    </div>
+  </div>
+  <div id="inv-aqua-container"></div>
+</div>
+
+<!-- CONFIG -->
+<div class="page" id="page-config">
+  <div class="page-header"><h1>Configuración</h1><p>Porcentajes, referidos y datos del sistema</p></div>
+  <div class="card">
+    <div class="card-title">Porcentajes de distribución — Ultraformer / Volnewmer / Volformer</div>
+    <div class="pct-grid">
+      <div class="pct-item"><label>Cobro uso cruzado al dueño (%)</label><input type="number" id="cfg-cruzado" value="30" min="0" max="100" onchange="guardarConfig()"> %</div>
+      <div class="pct-item"><label>Mantenimiento — todos los equipos (%)</label><input type="number" id="cfg-mant" value="5" min="0" max="100" onchange="guardarConfig()"> %</div>
+      <div class="pct-item"><label>Admin / Santiago (%)</label><input type="number" id="cfg-admin" value="5" min="0" max="100" onchange="guardarConfig()"> %</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Gestionar referidos</div>
+    <div id="referidos-preview" style="margin-bottom:10px"></div>
+    <button class="btn btn-outline btn-sm" onclick="abrirModalReferidos()">Editar lista de referidos</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Gestión de datos</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="exportarExcel()">Exportar todo a Excel</button>
+      <button class="btn btn-danger btn-sm" onclick="borrarTodo()">Borrar todos los datos</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end app -->
+
+<script>
+// ===================== CONSTANTES =====================
+const USUARIOS = {'1234':'Santiago','5678':'Carolina','9012':'Sneider'};
+const DELETE_CODE = '5027';
+
+// Transductores Ultraformer
+const TRANS_ULTRA_TIPOS = [
+  {tipo:'Lineal', medidas:['1.5mm','2.0mm','3.0mm','4.5mm','6.0mm','9.0mm','13.0mm'], totalDisparos:20000, costoPorDisparo:700},
+];
+const TRANS_ULTRA_BOOSTER = {tipo:'Booster', medidas:['1.5mm','3.0mm','4.5mm'], totalDisparos:20000, costoPorDisparo:700};
+
+// Transductores Volnewmer (punteras) con costo por disparo según medida
+const TRANS_VOL_SPECS = {
+  '0.25mm': {totalDisparos:6000, costoPorDisparo:912.33},
+  '3mm':    {totalDisparos:4000, costoPorDisparo:1368.5},
+  '4mm':    {totalDisparos:3000, costoPorDisparo:1824.67},
+  '16mm':   {totalDisparos:3000, costoPorDisparo:1824.67},
+};
+const TRANS_VOL_MEDIDAS = ['0.25mm','3mm','4mm','16mm'];
+
+// Costos fijos Aquapure por protocolo [nombre, precio, costoConsumibles, pagoCosmeto]
+const PROTOCOLOS_AQUAPURE = [
+  {id:'limpieza_manual',       nombre:'Limpieza manual',                                precio:250000, costoConsumibles:15000,  pagoCosmeto:62500},
+  {id:'limpieza_aquapure',     nombre:'Limpieza con Aquapure',                          precio:285000, costoConsumibles:60000,  pagoCosmeto:56250},
+  {id:'limpieza_masaje',       nombre:'Limpieza Aquapure + masaje',                     precio:325000, costoConsumibles:60000,  pagoCosmeto:65000},
+  {id:'limpieza_pecho',        nombre:'Limpieza pecho y espalda (microdermoabrasión)',  precio:300000, costoConsumibles:20000,  pagoCosmeto:70000},
+  {id:'limpieza_sueroterapia', nombre:'Limpieza Aquapure + sueroterapia (vitamina C)', precio:465000, costoConsumibles:120000, pagoCosmeto:85000},
+];
+
+const PROTOCOLOS_ULTRA = [
+  ['piel brillante (tono de piel) ultrabooster 1.5',4800000,200],
+  ['banco de colágeno',1250000,200],
+  ['ultra lips (labios)',600000,80],
+  ['arrugas en la frente',1500000,110],
+  ['párpado superior',1250000,160],
+  ['párpado inferior',1250000,200],
+  ['lifting peri orbitario',2000000,410],
+  ['bolsa para los ojos',1500000,230],
+  ['surco naso labial',1250000,100],
+  ['tercio inferior (perfil 1 rostro joven y delgado)',2000000,140],
+  ['tercio inferior (perfil 2 edad media, pérdida media)',2500000,140],
+  ['tercio inferior (perfil 3, cara redonda, pesado)',2500000,200],
+  ['reducción de grasa del tercio inferior (perfil 2)',2500000,200],
+  ['reducción de grasa del tercio inferior (perfil 3)',2500000,400],
+  ['arrugas periorales (código de barras)',1250000,160],
+  ['submentón (grasa papada)',3000000,190],
+  ['submentón flacidez',1800000,140],
+  ['cuello completo',2800000,200],
+  ['submentón y cuello',3500000,340],
+  ['full face (paciente joven de piel fina)',4500000,830],
+  ['full face (paciente 2)',5200000,880],
+  ['impacto mpt full face (2 profundidades ultrabooster)',6000000,1280],
+  ['glúteo',4000000,450],
+  ['brazo grande',2500000,600],
+  ['brazo pequeño',2000000,300],
+  ['manos',1000000,150],
+  ['preaxilar',800000,150],
+  ['abdomen completo',4500000,1250],
+  ['muslo (interno) - pequeño',2000000,1200],
+  ['rodilla',1000000,300],
+  ['muslo alto',2500000,1200],
+  ['zona infra glútea',2500000,1200],
+  ['pierna',2000000,1200],
+];
+
+// Volnewmer: [nombre, disparos{0.25,3,4,16}, precioDoctor|null, precioCalculado]
+const PROTOCOLOS_VOL = [
+  {nombre:'Frente',                    disparos:{0:0,3:200,4:0,16:0},   precioDoc:null,    precioCalc:1180800},
+  {nombre:'Ojos',                      disparos:{0:200,3:0,4:0,16:0},   precioDoc:null,    precioCalc:815867},
+  {nombre:'Tercio medio',              disparos:{0:0,3:200,4:100,16:0}, precioDoc:2000000, precioCalc:1910667},
+  {nombre:'Tercio inferior',           disparos:{0:0,3:300,4:0,16:0},   precioDoc:2000000, precioCalc:1728200},
+  {nombre:'Papada',                    disparos:{0:0,3:150,4:80,16:0},  precioDoc:null,    precioCalc:1490993},
+  {nombre:'Cuello',                    disparos:{0:0,3:200,4:0,16:0},   precioDoc:1500000, precioCalc:1180800},
+  {nombre:'Rodillas',                  disparos:{0:0,3:0,4:0,16:500},   precioDoc:null,    precioCalc:3112778},
+  {nombre:'Muslo interno',             disparos:{0:0,3:0,4:0,16:500},   precioDoc:null,    precioCalc:3112778},
+  {nombre:'Glúteos',                   disparos:{0:0,3:0,4:0,16:1000},  precioDoc:null,    precioCalc:6153889},
+  {nombre:'Brazos',                    disparos:{0:0,3:0,4:0,16:500},   precioDoc:null,    precioCalc:3112778},
+  {nombre:'Abdomen',                   disparos:{0:0,3:0,4:0,16:1000},  precioDoc:3700000, precioCalc:6153889},
+  {nombre:'Full face sin papada',      disparos:{0:200,3:450,4:0,16:0}, precioDoc:4200000, precioCalc:3279167},
+  {nombre:'Full face con papada',      disparos:{0:200,3:600,4:0,16:0}, precioDoc:null,    precioCalc:4100267},
+  {nombre:'Surcos y códigos de barras',disparos:{0:300,3:0,4:0,16:0},  precioDoc:1500000, precioCalc:1180800},
+];
+
+// Volformer: [nombre, disparosUltra, disparosVol0.25, disparosVol3, disparosVol4, precioCalc]
+const PROTOCOLOS_VOLFORMER = [
+  {nombre:'Periorbital',             disparosUltra:180, volDisparos:{0:200,3:100,4:0,16:0}, precioCalc:2334083},
+  {nombre:'Tercio medio e inferior', disparosUltra:360, volDisparos:{0:0,3:100,4:100,16:0}, precioCalc:2964083},
+  {nombre:'Submentón',               disparosUltra:400, volDisparos:{0:0,3:100,4:0,16:0},   precioCalc:2191750},
+  {nombre:'Cuello',                  disparosUltra:500, volDisparos:{0:0,3:200,4:0,16:0},   precioCalc:3226000},
+  {nombre:'Full face sin papada',    disparosUltra:540, volDisparos:{0:200,3:300,4:0,16:0}, precioCalc:4962583},
+  {nombre:'Full face con papada',    disparosUltra:940, volDisparos:{0:200,3:400,4:0,16:0}, precioCalc:7046833},
+];
+
+// ===================== ESTADO =====================
+let ultraEntradas = [];  // [{transId, disparos}]
+let volEntradas = [];    // [{transId, disparos}]
+let pendingDeleteId = null;
+let modalTransEquipo = 'ultra';
+let currentUser = null;
+
+function cop(v){return '$'+Math.round(v).toLocaleString('es-CO');}
+function pct(v){return Math.round(v*100)+'%';}
+
+// ===================== LOGIN =====================
+function tryLogin(){
+  const pin=document.getElementById('login-pin').value;
+  if(USUARIOS[pin]){
+    currentUser=USUARIOS[pin];
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('main-app').style.display='flex';
+    document.getElementById('sidebar-user-label').textContent='Usuario: '+currentUser;
+    document.getElementById('topbar-user-label').textContent=currentUser;
+    sessionStorage.setItem('derma-user',pin);
+    cargarConfig(); setFechaHoy(); poblarReferidos(); cargarDatos();
+    document.getElementById('login-pin').value='';
+  }
+}
+function cerrarSesion(){
+  sessionStorage.removeItem('derma-user');
+  currentUser=null;
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('login-pin').value='';
+  document.getElementById('login-err').textContent='';
+}
+(function(){
+  const p=sessionStorage.getItem('derma-user');
+  if(p&&USUARIOS[p]){
+    currentUser=USUARIOS[p];
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('main-app').style.display='flex';
+    document.getElementById('sidebar-user-label').textContent='Usuario: '+currentUser;
+    document.getElementById('topbar-user-label').textContent=currentUser;
+    cargarConfig(); setFechaHoy(); poblarReferidos(); cargarDatos();
+  }
+})();
+
+// ===================== CONFIG =====================
+function getCfg(){
+  return {
+    cruzado:(parseFloat(document.getElementById('cfg-cruzado').value)||30)/100,
+    mant:(parseFloat(document.getElementById('cfg-mant').value)||5)/100,
+    admin:(parseFloat(document.getElementById('cfg-admin').value)||5)/100,
+  };
+}
+function guardarConfig(){
+  const cfg=getCfg(); _cache.cfg=cfg;
+  sbUpsert('configuracion',{clave:'cfg',valor:cfg});
+}
+
+// ===================== REFERIDOS =====================
+function poblarReferidos(){
+  const refs=getReferidos();
+  const sel=document.getElementById('f-referido');
+  sel.innerHTML='<option value="">Sin referido</option>';
+  refs.forEach(r=>{
+    const o=document.createElement('option');
+    o.value=r.nombre; o.dataset.tipo=r.tipo;
+    o.textContent=r.nombre+(r.tipo==='cosmetologa'?' (cosm.)':'');
+    sel.appendChild(o);
+  });
+}
+function abrirModalReferidos(){
+  renderListaReferidosEdit();
+  document.getElementById('modal-referidos').classList.remove('hidden');
+}
+function cerrarModalReferidos(){
+  document.getElementById('modal-referidos').classList.add('hidden');
+  poblarReferidos(); renderReferidosPreview();
+}
+function renderListaReferidosEdit(){
+  const refs=getReferidos();
+  document.getElementById('lista-referidos-edit').innerHTML=refs.map((r,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px 8px;background:#f7fafc;border-radius:6px">
+      <span style="flex:1;font-size:12px;font-weight:600">${r.nombre}</span>
+      <span style="font-size:10px;color:#718096">${r.tipo==='cosmetologa'?'Cosm.':'Médico'}</span>
+      <button class="btn btn-danger btn-sm" onclick="eliminarReferido(${i})">×</button>
+    </div>`).join('');
+}
+function agregarReferido(){
+  const nombre=document.getElementById('nuevo-referido-nombre').value.trim();
+  const tipo=document.getElementById('nuevo-referido-tipo').value;
+  if(!nombre)return;
+  const refs=getReferidos(); refs.push({nombre,tipo}); setReferidos(refs);
+  document.getElementById('nuevo-referido-nombre').value='';
+  renderListaReferidosEdit();
+}
+function eliminarReferido(i){
+  const refs=getReferidos(); refs.splice(i,1); setReferidos(refs);
+  renderListaReferidosEdit();
+}
+function renderReferidosPreview(){
+  const refs=getReferidos();
+  document.getElementById('referidos-preview').innerHTML=refs.map(r=>
+    `<span style="display:inline-block;margin:2px;padding:2px 8px;border-radius:12px;font-size:11px;background:${r.tipo==='cosmetologa'?'#d1fae5':'#e0e7ff'};color:${r.tipo==='cosmetologa'?'#065f46':'#3730a3'}">${r.nombre}</span>`
+  ).join('');
+}
+
+// ===================== SUPABASE CONFIG =====================
+const SUPA_URL = 'https://sfcdoeuyjtmeovvderim.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmY2RvZXV5anRtZW92dmRlcmltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MTMzNTQsImV4cCI6MjA5MDk4OTM1NH0.8E35cofE8kLb5RhmpIc5Q0ygdKTRiy_9z0NHzNGPl3Q';
+const H = {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
+
+// Cache local para lecturas rápidas (se sincroniza al cargar y después de cada escritura)
+let _cache = {sesiones:null, ultra:null, vol:null, soluciones:null, cfg:null, referidos:null};
+
+async function sbGet(tabla){
+  const r = await fetch(`${SUPA_URL}/rest/v1/${tabla}?select=*`, {headers:H});
+  return r.ok ? await r.json() : [];
+}
+async function sbUpsert(tabla, row){
+  await fetch(`${SUPA_URL}/rest/v1/${tabla}`, {
+    method:'POST', headers:{...H,'Prefer':'resolution=merge-duplicates'},
+    body: JSON.stringify(row)
+  });
+}
+async function sbDelete(tabla, col, val){
+  await fetch(`${SUPA_URL}/rest/v1/${tabla}?${col}=eq.${val}`, {method:'DELETE', headers:H});
+}
+
+// Carga inicial de todos los datos desde Supabase al cache local
+async function cargarDatos(){
+  mostrarCargando(true);
+  try {
+    const [ses, ultra, vol, sols, cfgRows, refRows] = await Promise.all([
+      sbGet('sesiones'), sbGet('inventario_ultra'), sbGet('inventario_vol'),
+      sbGet('soluciones'), sbGet('configuracion'), sbGet('configuracion')
+    ]);
+    _cache.sesiones = ses.map(r=>r.data);
+    _cache.ultra = ultra.map(r=>r.data);
+    _cache.vol = vol.map(r=>r.data);
+    _cache.soluciones = sols.map(r=>r.data);
+    // cfg y referidos vienen de tabla configuracion
+    const cfgRow = cfgRows.find(r=>r.clave==='cfg');
+    const refRow = refRows.find(r=>r.clave==='referidos');
+    _cache.cfg = cfgRow ? cfgRow.valor : null;
+    _cache.referidos = refRow ? refRow.valor : null;
+    aplicarConfig();
+    poblarReferidos();
+  } catch(e){
+    console.error('Error cargando datos:', e);
+    alert('Error conectando con la base de datos. Verifica tu conexión a internet.');
+  }
+  mostrarCargando(false);
+}
+
+function mostrarCargando(show){
+  let el = document.getElementById('loading-overlay');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'loading-overlay';
+    el.style.cssText='position:fixed;inset:0;background:rgba(45,55,72,0.7);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;gap:12px';
+    el.innerHTML='<div style="width:40px;height:40px;border:4px solid rgba(255,255,255,0.3);border-top:4px solid white;border-radius:50%;animation:spin 0.8s linear infinite"></div><div style="color:white;font-size:14px;font-weight:600">Sincronizando...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+// ===================== STORAGE — SESIONES =====================
+function getSesiones(){ return _cache.sesiones || []; }
+async function setSesiones(arr){
+  _cache.sesiones = arr;
+  // Sincronizar solo la sesión nueva o eliminada se maneja por guardarSesion/confirmarDelete
+}
+async function agregarSesionDB(sesion){
+  _cache.sesiones = [...(_cache.sesiones||[]), sesion];
+  await sbUpsert('sesiones', {id: sesion.id, data: sesion});
+}
+async function eliminarSesionDB(id){
+  _cache.sesiones = (_cache.sesiones||[]).filter(s=>s.id!==id);
+  await sbDelete('sesiones', 'id', id);
+}
+
+// ===================== STORAGE — INVENTARIO =====================
+function getInventario(equipo){ return _cache[equipo] || []; }
+async function setInventario(equipo, arr){
+  _cache[equipo] = arr;
+  const tabla = equipo==='ultra' ? 'inventario_ultra' : 'inventario_vol';
+  // Upsert de todas las unidades modificadas
+  await Promise.all(arr.map(t => sbUpsert(tabla, {id: t.id, data: t})));
+}
+
+// ===================== STORAGE — SOLUCIONES =====================
+function getSoluciones(){ return _cache.soluciones || []; }
+async function setSoluciones(arr){
+  _cache.soluciones = arr;
+  const ultima = arr[arr.length-1];
+  if(ultima) await sbUpsert('soluciones', {id: ultima.id, data: ultima});
+}
+
+// ===================== STORAGE — CONFIG =====================
+function getCfg(){
+  return {
+    cruzado:(parseFloat(document.getElementById('cfg-cruzado').value)||30)/100,
+    mant:(parseFloat(document.getElementById('cfg-mant').value)||5)/100,
+    admin:(parseFloat(document.getElementById('cfg-admin').value)||5)/100,
+  };
+}
+async function guardarConfig(){
+  const cfg = getCfg();
+  _cache.cfg = cfg;
+  await sbUpsert('configuracion', {clave:'cfg', valor: cfg});
+}
+function aplicarConfig(){
+  const c = _cache.cfg;
+  if(c){
+    document.getElementById('cfg-cruzado').value=Math.round(c.cruzado*100);
+    document.getElementById('cfg-mant').value=Math.round(c.mant*100);
+    document.getElementById('cfg-admin').value=Math.round(c.admin*100);
+  }
+}
+function cargarConfig(){ aplicarConfig(); }
+
+// ===================== STORAGE — REFERIDOS =====================
+const DEF_REFERIDOS=[
+  {nombre:'Diana',tipo:'cosmetologa'},{nombre:'Vero',tipo:'cosmetologa'},
+  {nombre:'Cristina',tipo:'cosmetologa'},{nombre:'Carolina',tipo:'medico'},{nombre:'Sneider',tipo:'medico'}
+];
+function getReferidos(){ return _cache.referidos || DEF_REFERIDOS; }
+async function setReferidos(arr){
+  _cache.referidos = arr;
+  await sbUpsert('configuracion', {clave:'referidos', valor: arr});
+}
+
+function nextTransId(equipo){
+  const inv=getInventario(equipo);
+  if(!inv.length) return (equipo==='ultra'?'U':'V')+'001';
+  const prefix=equipo==='ultra'?'U':'V';
+  const nums=inv.map(t=>parseInt(t.id.replace(prefix,''))||0);
+  return prefix+(Math.max(...nums)+1).toString().padStart(3,'0');
+}
+
+// ===================== INVENTARIO MODALS =====================
+const ULTRA_MEDIDAS_LINEAL=['1.5mm','2.0mm','3.0mm','4.5mm','6.0mm','9.0mm','13.0mm'];
+const ULTRA_MEDIDAS_BOOSTER=['1.5mm','3.0mm','4.5mm'];
+
+function abrirModalTrans(equipo){
+  modalTransEquipo=equipo;
+  const title=equipo==='ultra'?'Agregar transductor Ultraformer':'Agregar transductor Volnewmer';
+  document.getElementById('modal-trans-title').textContent=title;
+  const tipoSel=document.getElementById('nt-tipo');
+  if(equipo==='vol'){
+    tipoSel.innerHTML='<option value="Puntera">Puntera</option>';
+    tipoSel.disabled=true;
+  } else {
+    tipoSel.innerHTML='<option value="Lineal">Lineal</option><option value="Booster">Booster</option>';
+    tipoSel.disabled=false;
+  }
+  onNtTipoChange();
+  document.getElementById('nt-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('nt-usados').value=0;
+  document.getElementById('nt-etiqueta').value='';
+  document.getElementById('modal-trans').classList.remove('hidden');
+}
+function cerrarModalTrans(){document.getElementById('modal-trans').classList.add('hidden');}
+function onNtTipoChange(){
+  const equipo=modalTransEquipo;
+  const tipo=document.getElementById('nt-tipo').value;
+  const medSel=document.getElementById('nt-medida');
+  let medidas=[];
+  if(equipo==='vol') medidas=TRANS_VOL_MEDIDAS;
+  else if(tipo==='Lineal') medidas=ULTRA_MEDIDAS_LINEAL;
+  else medidas=ULTRA_MEDIDAS_BOOSTER;
+  medSel.innerHTML=medidas.map(m=>`<option value="${m}">${m}</option>`).join('');
+}
+async function confirmarAgregarTransductor(){
+  const tipo=document.getElementById('nt-tipo').value;
+  const medida=document.getElementById('nt-medida').value;
+  const usados=parseInt(document.getElementById('nt-usados').value)||0;
+  const fecha=document.getElementById('nt-fecha').value;
+  const etiqueta=document.getElementById('nt-etiqueta').value.trim();
+  if(!fecha){alert('Selecciona la fecha de compra.');return;}
+  const inv=getInventario(modalTransEquipo);
+  inv.push({id:nextTransId(modalTransEquipo), tipo, medida, etiqueta, fechaCompra:fecha, disparosUsados:usados, retirado:false});
+  setInventario(modalTransEquipo,inv);
+  cerrarModalTrans();
+  if(modalTransEquipo==='ultra') renderInvUltra();
+  else renderInvVol();
+  // refrescar selector si está abierto
+  if(document.getElementById('bloque-ultra').style.display!=='none') renderEntradas('ultra');
+  if(document.getElementById('bloque-vol').style.display!=='none') renderEntradas('vol');
+}
+
+function abrirModalSolucion(){
+  document.getElementById('ns-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('ns-cantidad').value=1;
+  document.getElementById('modal-solucion').classList.remove('hidden');
+}
+function cerrarModalSolucion(){document.getElementById('modal-solucion').classList.add('hidden');}
+async function confirmarAgregarSolucion(){
+  const tipo=document.getElementById('ns-tipo').value;
+  const cantidad=parseInt(document.getElementById('ns-cantidad').value)||1;
+  const fecha=document.getElementById('ns-fecha').value;
+  if(!fecha){alert('Selecciona la fecha.');return;}
+  const sols=getSoluciones();
+  const nueva={id:Date.now(), tipo, cantidad, fecha};
+  sols.push(nueva);
+  await setSoluciones(sols);
+  cerrarModalSolucion();
+  renderInvAqua();
+}
+
+// ===================== RENDER INVENTARIOS =====================
+function getTotalDisparos(equipo, medida){
+  if(equipo==='ultra') return 20000;
+  return TRANS_VOL_SPECS[medida]?.totalDisparos||0;
+}
+function getCostoDisparo(equipo, medida){
+  if(equipo==='ultra') return 700;
+  return TRANS_VOL_SPECS[medida]?.costoPorDisparo||0;
+}
+
+function renderInvBase(equipo){
+  const inv=getInventario(equipo);
+  const cont=document.getElementById('inv-'+equipo+'-container');
+  if(!inv.length){
+    cont.innerHTML=`<div class="card"><div class="empty">Sin transductores registrados. Usa el botón + para agregar.</div></div>`;
+    return;
+  }
+  const activos=inv.filter(t=>!t.retirado);
+  const totalDisp=activos.reduce((a,t)=>a+Math.max(0,getTotalDisparos(equipo,t.medida)-(t.disparosUsados||0)),0);
+  const prob=activos.filter(t=>{const r=getTotalDisparos(equipo,t.medida)-(t.disparosUsados||0);return r<=0||r<(getTotalDisparos(equipo,t.medida)*0.15);}).length;
+  // agrupar
+  const grupos={};
+  inv.forEach(t=>{
+    const k=`${t.tipo}|${t.medida}`;
+    if(!grupos[k]) grupos[k]={tipo:t.tipo,medida:t.medida,items:[]};
+    grupos[k].items.push(t);
+  });
+  const statsHtml=`<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="stat-card"><div class="number">${activos.length}</div><div class="label">Activos</div></div>
+    <div class="stat-card"><div class="number" style="color:#667eea">${totalDisp.toLocaleString('es-CO')}</div><div class="label">Disparos disponibles</div></div>
+    <div class="stat-card"><div class="number" style="color:${prob?'#e53e3e':'#38a169'}">${prob}</div><div class="label">Stock bajo o agotado</div></div>
+  </div>`;
+  const tablaHtml=`<div class="card"><div class="card-title">Detalle por unidad</div>
+    ${Object.values(grupos).map(g=>{
+      const rows=g.items.map(t=>{
+        const total=getTotalDisparos(equipo,t.medida);
+        const usado=t.disparosUsados||0;
+        const rest=Math.max(0,total-usado);
+        const pct2=Math.min(100,Math.round((usado/total)*100));
+        const barC=t.retirado?'#d1d5db':rest<=0?'#fc8181':rest<total*0.15?'#ed8936':'#48bb78';
+        const txtC=t.retirado?'#9ca3af':rest<=0?'#e53e3e':rest<total*0.15?'#c05621':'#276749';
+        let bc,bt;
+        if(t.retirado){bc='retirado';bt='Retirado';}
+        else if(rest<=0){bc='agotado';bt='Agotado';}
+        else if(rest<total*0.15){bc='bajo';bt='Stock bajo';}
+        else{bc='activo';bt='Activo';}
+        const costoD=equipo==='vol'?` · $${Math.round(getCostoDisparo(equipo,t.medida)).toLocaleString('es-CO')}/disp`:'';
+        return `<tr style="${t.retirado?'opacity:0.6':''}">
+          <td><strong>${t.id}</strong>${t.etiqueta?` <span style="color:#718096;font-size:10px">— ${t.etiqueta}</span>`:''}</td>
+          <td>${t.fechaCompra||'—'}</td>
+          <td><span class="inv-badge ${bc}">${bt}</span></td>
+          <td><div style="display:flex;align-items:center;gap:6px;min-width:100px"><div style="flex:1"><div class="progress-bar" style="height:7px"><div class="progress-fill" style="width:${pct2}%;background:${barC}"></div></div></div><span style="font-size:10px;font-weight:700;color:${txtC}">${pct2}%</span></div></td>
+          <td style="text-align:right">${usado.toLocaleString('es-CO')}${costoD}</td>
+          <td style="text-align:right;font-weight:700;color:${txtC}">${rest.toLocaleString('es-CO')}</td>
+          <td>${!t.retirado?`<button class="btn btn-danger btn-sm" onclick="retirarTrans('${equipo}','${t.id}')">Retirar</button>`:`<button class="btn btn-outline btn-sm" onclick="restaurarTrans('${equipo}','${t.id}')">Restaurar</button>`}</td>
+        </tr>`;
+      }).join('');
+      return `<div style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
+          <div style="width:3px;height:16px;background:#667eea;border-radius:2px"></div>
+          <span style="font-weight:700;font-size:12px">${g.tipo} ${g.medida}</span>
+          <span style="font-size:10px;color:#a0aec0">${g.items.length} unidad${g.items.length!==1?'es':''}</span>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>ID / Etiqueta</th><th>F. Compra</th><th>Estado</th><th style="min-width:130px">Vida útil</th><th style="text-align:right">Usados</th><th style="text-align:right">Restantes</th><th>Acc.</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+      </div>`;
+    }).join('')}
+  </div>`;
+  cont.innerHTML=statsHtml+tablaHtml;
+}
+
+function renderInvUltra(){renderInvBase('ultra');}
+function renderInvVol(){renderInvBase('vol');}
+
+async function retirarTrans(equipo,id){
+  if(!confirm('¿Marcar como retirado?'))return;
+  const inv=getInventario(equipo);
+  const t=inv.find(x=>x.id===id); if(t)t.retirado=true;
+  await setInventario(equipo,inv);
+  if(equipo==='ultra')renderInvUltra(); else renderInvVol();
+}
+async function restaurarTrans(equipo,id){
+  const inv=getInventario(equipo);
+  const t=inv.find(x=>x.id===id); if(t)t.retirado=false;
+  await setInventario(equipo,inv);
+  if(equipo==='ultra')renderInvUltra(); else renderInvVol();
+}
+
+function renderInvAqua(){
+  const sols=getSoluciones();
+  const cont=document.getElementById('inv-aqua-container');
+  const nombres={'PEEL+':'Aquasolution PEEL+','SEBUM+':'Aquasolution SEBUM+','REJUVE+':'Aquasolution REJUVE+','CLEANSYS':'CLEANSYS'};
+  const colores={'PEEL+':'#fce7f3','SEBUM+':'#fef3c7','REJUVE+':'#d1fae5','CLEANSYS':'#e0e7ff'};
+  const txtC={'PEEL+':'#be185d','SEBUM+':'#92400e','REJUVE+':'#065f46','CLEANSYS':'#3730a3'};
+  // resumen por tipo
+  const totales={};
+  sols.forEach(s=>{if(!totales[s.tipo])totales[s.tipo]=0; totales[s.tipo]+=s.cantidad;});
+  const resumenHtml=`<div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+    ${['PEEL+','SEBUM+','REJUVE+','CLEANSYS'].map(t=>`
+      <div class="stat-card" style="border-top:3px solid ${txtC[t]}">
+        <div style="font-size:10px;color:${txtC[t]};font-weight:700;margin-bottom:4px">${nombres[t]}</div>
+        <div class="number" style="font-size:18px">${totales[t]||0}</div>
+        <div class="label">unidades registradas</div>
+      </div>`).join('')}
+  </div>`;
+  if(!sols.length){
+    cont.innerHTML=resumenHtml+`<div class="card"><div class="empty">Sin compras registradas. Usa el botón + para agregar.</div></div>`;
+    return;
+  }
+  const rows=sols.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(s=>`<tr>
+    <td>${s.fecha}</td>
+    <td><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;background:${colores[s.tipo]};color:${txtC[s.tipo]}">${nombres[s.tipo]||s.tipo}</span></td>
+    <td style="text-align:center;font-weight:700">${s.cantidad}</td>
+  </tr>`).join('');
+  cont.innerHTML=resumenHtml+`<div class="card"><div class="card-title">Historial de compras</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Fecha</th><th>Solución</th><th style="text-align:center">Cantidad</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+// ===================== NAV =====================
+function toggleSidebar(){
+  document.getElementById('main-app').querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('main-app').querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+function goPage(el){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  const p=el.dataset.page;
+  document.getElementById('page-'+p).classList.add('active');
+  el.classList.add('active');
+  closeSidebar();
+  if(p==='sesiones') renderSesiones();
+  if(p==='pacientes') renderPacientes();
+  if(p==='financiero') renderFinanciero();
+  if(p==='inv-ultra') renderInvUltra();
+  if(p==='inv-vol') renderInvVol();
+  if(p==='inv-aqua') renderInvAqua();
+  if(p==='config'){renderReferidosPreview();}
+}
+
+// ===================== FORM =====================
+function setFechaHoy(){document.getElementById('f-fecha').value=new Date().toISOString().split('T')[0];}
+
+function togglePaquete(){
+  const esPaquete=document.getElementById('f-es-paquete').checked;
+  document.getElementById('bloque-paquete').style.display=esPaquete?'block':'none';
+}
+
+function onDescuentoInput(){
+  // Si el usuario edita el descuento manualmente, desactivar solo-disparos
+  if(document.getElementById('f-solo-disparos').checked){
+    document.getElementById('f-solo-disparos').checked=false;
+    document.getElementById('solo-disparos-info').style.display='none';
+  }
+  calcular();
+}
+
+function toggleSoloDisparos(){
+  const activo=document.getElementById('f-solo-disparos').checked;
+  document.getElementById('solo-disparos-info').style.display=activo?'block':'none';
+  if(activo){
+    // Limpiar descuento manual para evitar conflicto
+    document.getElementById('f-descuento').value=0;
+    document.getElementById('f-descuento-razon').value='Familiar / cortesía — solo costo disparos';
+  } else {
+    document.getElementById('f-descuento-razon').value='';
+  }
+  calcular();
+}
+
+function onEquipoChange(){
+  const eq=document.getElementById('f-equipo').value;
+  // reset zonas
+  document.getElementById('f-zona').innerHTML='<option value="">Seleccionar zona...</option>';
+  document.getElementById('f-zona-vol').innerHTML='<option value="">Seleccionar zona Volnewmer...</option>';
+  document.getElementById('f-precio').value='';
+  // ocultar bloques
+  ['bloque-ultra','bloque-vol','bloque-vol-zona'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('campo-cosmetologa').style.display='none';
+  document.getElementById('result-box').classList.add('hidden');
+  ultraEntradas=[]; volEntradas=[];
+  // médico
+  if(eq==='aquapure'){
+    document.getElementById('f-medico').innerHTML='<option value="">Seleccionar médico...</option><option value="Cosmetologa">Cosmetóloga</option>';
+    document.getElementById('campo-cosmetologa').style.display='flex';
+    const nombres=[...new Set(getSesiones().filter(s=>s.equipo==='aquapure'&&s.cosmetologa).map(s=>s.cosmetologa))];
+    document.getElementById('cosmetologas-list').innerHTML=nombres.map(n=>`<option value="${n}">`).join('');
+  } else {
+    document.getElementById('f-medico').innerHTML='<option value="">Seleccionar médico...</option><option value="Carolina">Carolina</option><option value="Sneider">Sneider</option>';
+    document.getElementById('campo-cosmetologa').style.display='none';
+    document.getElementById('f-cosmetologa').value='';
+  }
+  // Solo disparos checkbox — solo para equipos con transductores
+  const soloDisp=document.getElementById('campo-solo-disparos');
+  const chk=document.getElementById('f-solo-disparos');
+  if(eq==='ultraformer'||eq==='volnewmer'||eq==='volformer'){
+    soloDisp.style.display='block';
+  } else {
+    soloDisp.style.display='none';
+    chk.checked=false;
+    document.getElementById('solo-disparos-info').style.display='none';
+  }
+  chk.checked=false;
+  document.getElementById('solo-disparos-info').style.display='none';
+  let protos=[];
+  if(eq==='ultraformer') protos=PROTOCOLOS_ULTRA.map(p=>({nombre:p[0],precio:p[1],disparos:p[2]}));
+  else if(eq==='volnewmer') protos=PROTOCOLOS_VOL.map(p=>({nombre:p.nombre,precio:p.precioDoc||p.precioCalc}));
+  else if(eq==='volformer') protos=PROTOCOLOS_VOLFORMER.map(p=>({nombre:p.nombre,precio:p.precioCalc}));
+  else if(eq==='aquapure') protos=PROTOCOLOS_AQUAPURE.map(p=>({nombre:p.nombre,precio:p.precio}));
+  protos.forEach(p=>{
+    const o=document.createElement('option');
+    o.value=p.nombre; o.dataset.precio=p.precio; if(p.disparos) o.dataset.disparos=p.disparos;
+    o.textContent=p.nombre+' — '+cop(p.precio);
+    document.getElementById('f-zona').appendChild(o);
+  });
+  // poblar zona vol para volformer
+  if(eq==='volformer'){
+    document.getElementById('bloque-vol-zona').style.display='block';
+    PROTOCOLOS_VOL.forEach(p=>{
+      const o=document.createElement('option');
+      o.value=p.nombre; o.dataset.precio=p.precioDoc||p.precioCalc;
+      o.textContent=p.nombre; document.getElementById('f-zona-vol').appendChild(o);
+    });
+  }
+}
+
+function onZonaChange(){
+  const eq=document.getElementById('f-equipo').value;
+  const zonaEl=document.getElementById('f-zona');
+  const opt=zonaEl.options[zonaEl.selectedIndex];
+  if(!opt||!opt.dataset.precio) return;
+  // precio editable
+  const precioBase=parseInt(opt.dataset.precio)||0;
+  document.getElementById('f-precio').value=precioBase;
+  // bloques transductores
+  if(eq==='ultraformer'||eq==='volformer'){
+    const ref=eq==='ultraformer'?(parseInt(opt.dataset.disparos)||0):0;
+    document.getElementById('ultra-disparos-ref').value=ref;
+    document.getElementById('ultra-ref-label').textContent=ref?ref.toLocaleString('es-CO')+' disparos':'Ver protocolo';
+    document.getElementById('bloque-ultra').style.display='block';
+    ultraEntradas=[];
+    agregarEntrada('ultra');
+  }
+  if(eq==='volnewmer'){
+    const proto=PROTOCOLOS_VOL.find(p=>p.nombre===opt.value);
+    let refTotal=0;
+    if(proto) refTotal=Object.values(proto.disparos).reduce((a,b)=>a+b,0);
+    document.getElementById('vol-disparos-ref').value=refTotal;
+    document.getElementById('vol-ref-label').textContent=refTotal?refTotal.toLocaleString('es-CO')+' disparos':'—';
+    document.getElementById('bloque-vol').style.display='block';
+    volEntradas=[];
+    // pre-llenar entradas según protocolo
+    if(proto){
+      const medMap={'0':'0.25mm','3':'3mm','4':'4mm','16':'16mm'};
+      Object.entries(proto.disparos).forEach(([k,v])=>{
+        if(v>0){volEntradas.push({transId:null, disparos:v, medidaSugerida:medMap[k]});}
+      });
+      if(!volEntradas.length) volEntradas.push({transId:null,disparos:'',medidaSugerida:null});
+    } else {
+      volEntradas.push({transId:null,disparos:'',medidaSugerida:null});
+    }
+    renderEntradas('vol');
+  }
+  calcular();
+}
+
+function onZonaVolChange(){
+  // para Volformer, protocolo del lado Volnewmer
+  const opt=document.getElementById('f-zona-vol').options[document.getElementById('f-zona-vol').selectedIndex];
+  if(!opt||!opt.value) return;
+  const proto=PROTOCOLOS_VOL.find(p=>p.nombre===opt.value);
+  if(!proto) return;
+  let refTotal=Object.values(proto.disparos).reduce((a,b)=>a+b,0);
+  document.getElementById('vol-disparos-ref').value=refTotal;
+  document.getElementById('vol-ref-label').textContent=refTotal?refTotal.toLocaleString('es-CO')+' disparos':'—';
+  document.getElementById('bloque-vol').style.display='block';
+  volEntradas=[];
+  const medMap={'0':'0.25mm','3':'3mm','4':'4mm','16':'16mm'};
+  Object.entries(proto.disparos).forEach(([k,v])=>{
+    if(v>0) volEntradas.push({transId:null,disparos:v,medidaSugerida:medMap[k]});
+  });
+  if(!volEntradas.length) volEntradas.push({transId:null,disparos:'',medidaSugerida:null});
+  renderEntradas('vol');
+  calcular();
+}
+
+// ===================== ENTRADAS TRANSDUCTORES =====================
+function agregarEntrada(eq){
+  if(eq==='ultra') ultraEntradas.push({transId:null,disparos:''});
+  else volEntradas.push({transId:null,disparos:'',medidaSugerida:null});
+  renderEntradas(eq);
+}
+function eliminarEntrada(eq,idx){
+  if(eq==='ultra') ultraEntradas.splice(idx,1);
+  else volEntradas.splice(idx,1);
+  renderEntradas(eq); calcular();
+}
+
+function renderEntradas(eq){
+  const entradas=eq==='ultra'?ultraEntradas:volEntradas;
+  const inv=getInventario(eq).filter(t=>!t.retirado);
+  const listaId=eq==='ultra'?'ultra-entradas-lista':'vol-entradas-lista';
+  const lista=document.getElementById(listaId);
+  if(!entradas.length){lista.innerHTML='';return;}
+  // agrupar inventario
+  const grupos={};
+  inv.forEach(t=>{
+    const k=`${t.tipo}|${t.medida}`;
+    if(!grupos[k]) grupos[k]={tipo:t.tipo,medida:t.medida,items:[]};
+    grupos[k].items.push(t);
+  });
+  const gArr=Object.values(grupos).sort((a,b)=>{
+    if(a.tipo!==b.tipo) return a.tipo<b.tipo?-1:1;
+    return parseFloat(a.medida)-parseFloat(b.medida);
+  });
+  lista.innerHTML=entradas.map((entrada,idx)=>{
+    const selT=entrada.transId?inv.find(t=>t.id===entrada.transId):null;
+    const accentColor=eq==='vol'?'#5b21b6':'#667eea';
+    let tarjetasHtml='';
+    if(!inv.length){
+      tarjetasHtml=`<div style="font-size:11px;color:#e53e3e;padding:6px 0">Sin transductores en inventario. Ve a Inventario para agregar.</div>`;
+    } else {
+      tarjetasHtml=gArr.map(g=>`
+        <div style="margin-bottom:6px">
+          <div style="font-size:10px;font-weight:700;color:#4a5568;margin-bottom:3px">${g.tipo} ${g.medida}${eq==='vol'?` · $${Math.round(getCostoDisparo(eq,g.medida)).toLocaleString('es-CO')}/disp`:''}</div>
+          <div class="trans-grid">${g.items.map(t=>{
+            const total=getTotalDisparos(eq,t.medida);
+            const rest=Math.max(0,total-(t.disparosUsados||0));
+            const p2=Math.min(100,Math.round(((t.disparosUsados||0)/total)*100));
+            const agotado=rest<=0;
+            const sel=entrada.transId===t.id;
+            const barC=p2>80?'#fc8181':p2>50?'#ed8936':'#48bb78';
+            return `<div class="trans-card ${sel?'selected':''}"
+              onclick="${agotado?'alert(\'Transductor agotado\')':'seleccionarTrans(\''+eq+'\','+idx+',\''+t.id+'\')'}"
+              style="${agotado?'opacity:0.4;cursor:not-allowed':''}">
+              <div class="c-name">${t.medida}</div>
+              <div class="c-type">${t.id}${t.etiqueta?' · '+t.etiqueta:''}</div>
+              <div class="c-shots">${rest.toLocaleString('es-CO')} rest.</div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${p2}%;background:${barC}"></div></div>
+            </div>`;
+          }).join('')}</div>
+        </div>`).join('');
+    }
+    return `<div style="border:1px solid ${eq==='vol'?'#c4b5fd':'#fbd38d'};border-radius:9px;padding:10px;margin-bottom:9px;background:${eq==='vol'?'#faf5ff':'#fffbeb'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <span style="font-size:11px;font-weight:700;color:${accentColor}">Transductor ${idx+1}${selT?' — '+selT.tipo+' '+selT.medida+(selT.etiqueta?' ('+selT.etiqueta+')':''):''}</span>
+        ${entradas.length>1?`<button class="btn btn-danger btn-sm" onclick="eliminarEntrada('${eq}',${idx})">× Quitar</button>`:''}
+      </div>
+      ${tarjetasHtml}
+      <div class="form-group" style="max-width:200px;margin-top:8px">
+        <label>Disparos usados</label>
+        <input type="number" min="1" placeholder="Ej: 120" value="${entrada.disparos||''}"
+          oninput="actualizarDisparosEntrada('${eq}',${idx},this.value)"
+          style="border:1px solid #e2e8f0;border-radius:7px;padding:7px 9px;font-size:12px">
+      </div>
+    </div>`;
+  }).join('');
+  actualizarTotalEntradas(eq);
+}
+
+function seleccionarTrans(eq,idx,transId){
+  const inv=getInventario(eq);
+  const t=inv.find(x=>x.id===transId);
+  if(!t||t.retirado) return;
+  const rest=getTotalDisparos(eq,t.medida)-(t.disparosUsados||0);
+  if(rest<=0){alert('Transductor agotado.');return;}
+  if(eq==='ultra') ultraEntradas[idx].transId=transId;
+  else volEntradas[idx].transId=transId;
+  renderEntradas(eq); calcular();
+}
+
+function actualizarDisparosEntrada(eq,idx,val){
+  const v=parseInt(val)||'';
+  if(eq==='ultra') ultraEntradas[idx].disparos=v;
+  else volEntradas[idx].disparos=v;
+  // advertencia de stock
+  const entrada=eq==='ultra'?ultraEntradas[idx]:volEntradas[idx];
+  if(entrada.transId&&v){
+    const inv=getInventario(eq);
+    const t=inv.find(x=>x.id===entrada.transId);
+    if(t){
+      const rest=getTotalDisparos(eq,t.medida)-(t.disparosUsados||0);
+      if(v>rest) alert(`⚠️ Advertencia: el transductor ${t.id} tiene ${rest.toLocaleString('es-CO')} disparos restantes pero estás ingresando ${v.toLocaleString('es-CO')}. Verifica el inventario.`);
+    }
+  }
+  actualizarTotalEntradas(eq); calcular();
+}
+
+function actualizarTotalEntradas(eq){
+  const entradas=eq==='ultra'?ultraEntradas:volEntradas;
+  const total=entradas.reduce((a,e)=>a+(parseInt(e.disparos)||0),0);
+  const ref=parseInt(document.getElementById(eq==='ultra'?'ultra-disparos-ref':'vol-disparos-ref').value)||0;
+  const statusDiv=document.getElementById(eq==='ultra'?'ultra-total-status':'vol-total-status');
+  const totalVal=document.getElementById(eq==='ultra'?'ultra-total-val':'vol-total-val');
+  const diffEl=document.getElementById(eq==='ultra'?'ultra-shots-diff':'vol-shots-diff');
+  if(total>0){
+    statusDiv.style.display='block';
+    totalVal.textContent=total.toLocaleString('es-CO');
+    if(ref>0){
+      const diff=total-ref;
+      diffEl.textContent=diff===0?'✓ igual al protocolo':diff>0?`+${diff} sobre protocolo`:`${diff} bajo protocolo`;
+      diffEl.style.color=diff===0?'#38a169':diff>0?'#e53e3e':'#ed8936';
+    }
+  } else {statusDiv.style.display='none';}
+}
+
+// ===================== CÁLCULO FINANCIERO =====================
+function calcular(){
+  const eq=document.getElementById('f-equipo').value;
+  const med=document.getElementById('f-medico').value;
+  if(!eq||!med) return;
+  const precioInput=parseInt(document.getElementById('f-precio').value)||0;
+  if(!precioInput) return;
+  // costo disparos ultra
+  const ultraTotal=ultraEntradas.reduce((a,e)=>a+(parseInt(e.disparos)||0),0);
+  const costoUltra=ultraTotal*700;
+  // costo disparos vol
+  let costoVol=0;
+  volEntradas.forEach(e=>{
+    const d=parseInt(e.disparos)||0;
+    if(!d) return;
+    let costoD=0;
+    if(e.transId){const inv=getInventario('vol');const t=inv.find(x=>x.id===e.transId);if(t)costoD=getCostoDisparo('vol',t.medida);}
+    costoVol+=d*costoD;
+  });
+  const costoTotal=costoUltra+costoVol;
+  // Solo disparos: precio final = costo total disparos, descuento calculado automáticamente
+  const soloDisparos=document.getElementById('f-solo-disparos')?.checked&&
+    (eq==='ultraformer'||eq==='volnewmer'||eq==='volformer');
+  let precioFinal, descPct;
+  if(soloDisparos&&costoTotal>0){
+    precioFinal=costoTotal;
+    descPct=precioInput>0?(precioInput-costoTotal)/precioInput:0;
+    // Mostrar el descuento calculado en el campo para trazabilidad
+    document.getElementById('f-descuento').value=Math.round(descPct*100);
+  } else {
+    descPct=(parseFloat(document.getElementById('f-descuento').value)||0)/100;
+    precioFinal=Math.round(precioInput*(1-descPct));
+  }
+  const utilBruta=precioFinal-costoTotal;
+  const cfg=getCfg();
+  // referido
+  const refSel=document.getElementById('f-referido');
+  const refNombre=refSel.value;
+  const refOpt=refSel.options[refSel.selectedIndex];
+  const refTipo=refOpt?refOpt.dataset.tipo:'';
+  const refPct=(refTipo==='cosmetologa')?(eq==='aquapure'?0.05:0.03):0;
+  const comisionRef=utilBruta*refPct;
+  const utilDespRef=utilBruta-comisionRef;
+
+  let items=[
+    {lbl:'Precio bruto',val:cop(precioInput),cls:''},
+  ];
+  if(descPct>0){
+    const descLabel=soloDisparos?'Solo costo disparos (familiar/cortesía)':`Descuento (${Math.round(descPct*100)}%)`;
+    items.push({lbl:descLabel,val:`-${cop(precioInput-precioFinal)}`,cls:'danger'});
+  }
+  items.push({lbl:'Precio final',val:cop(precioFinal),cls:'highlight'});
+  if(costoUltra>0) items.push({lbl:`Disparos Ultraformer (${ultraTotal}×$700)`,val:cop(costoUltra),cls:'warning'});
+  if(costoVol>0) items.push({lbl:`Disparos Volnewmer`,val:cop(costoVol),cls:'warning'});
+  items.push({lbl:'Utilidad bruta',val:cop(utilBruta),cls:''});
+  if(comisionRef>0) items.push({lbl:`Comisión ${refNombre} (${Math.round(refPct*100)}%)`,val:cop(comisionRef),cls:'purple'});
+
+  if(eq==='aquapure'){
+    const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===document.getElementById('f-zona').value);
+    const costoConsumibles=proto?proto.costoConsumibles:0;
+    const pagoCosmeto=proto?proto.pagoCosmeto:0;
+    const utilDisponible=utilDespRef-costoConsumibles-pagoCosmeto;
+    const mant=utilDisponible*cfg.mant;
+    const admin=utilDisponible*cfg.admin;
+    items.push({lbl:'Consumibles Aquapure',val:cop(costoConsumibles),cls:'warning'});
+    items.push({lbl:'Pago cosmetóloga',val:cop(pagoCosmeto),cls:'warning'});
+    items.push({lbl:`Mantenimiento Aquapure (${pct(cfg.mant)})`,val:cop(mant),cls:'warning'});
+    items.push({lbl:`Admin Santiago (${pct(cfg.admin)})`,val:cop(admin),cls:'warning'});
+    const utilSocios=utilDisponible-mant-admin;
+    const cadaSocio=utilSocios/2;
+    items.push({lbl:'Carolina (50%)',val:cop(cadaSocio),cls:'success'});
+    items.push({lbl:'Sneider (50%)',val:cop(cadaSocio),cls:'success'});
+  } else if(eq==='ultraformer'){
+    _calcDistribucionEquipo(items,'ultraformer',med,utilDespRef,cfg,comisionRef>0);
+  } else if(eq==='volnewmer'){
+    _calcDistribucionEquipo(items,'volnewmer',med,utilDespRef,cfg,comisionRef>0);
+  } else if(eq==='volformer'){
+    // Separar por equipo
+    const utilUltra=costoUltra>0||costoVol>0 ? (costoUltra/(costoUltra+costoVol||1))*utilDespRef : utilDespRef/2;
+    const utilVoln=utilDespRef-utilUltra;
+    items.push({lbl:'— Lado Ultraformer —',val:'',cls:''});
+    _calcDistribucionEquipo(items,'ultraformer',med,utilUltra,cfg,false);
+    items.push({lbl:'— Lado Volnewmer —',val:'',cls:''});
+    _calcDistribucionEquipo(items,'volnewmer',med,utilVoln,cfg,false);
+  }
+
+  document.getElementById('result-box').classList.remove('hidden');
+  document.getElementById('result-grid').innerHTML=items.filter(i=>i.lbl).map(i=>`<div class="result-item ${i.cls}"><div class="val">${i.val}</div><div class="lbl">${i.lbl}</div></div>`).join('');
+}
+
+function _calcDistribucionEquipo(items,equipo,med,util,cfg,yaDescontadoRef){
+  const dueno=equipo==='ultraformer'?'Carolina':'Sneider';
+  const visitante=equipo==='ultraformer'?'Sneider':'Carolina';
+  if(med===dueno||med==='Cosmetologa'){
+    const mant=util*cfg.mant;
+    const admin=util*cfg.admin;
+    items.push({lbl:`Mantenimiento ${equipo==='ultraformer'?'Ultra':'Vol'} (${pct(cfg.mant)})`,val:cop(mant),cls:'warning'});
+    items.push({lbl:`Admin Santiago (${pct(cfg.admin)})`,val:cop(admin),cls:'warning'});
+    items.push({lbl:`Ganancia ${dueno}`,val:cop(util-mant-admin),cls:'success'});
+  } else {
+    const cruzado=util*cfg.cruzado;
+    items.push({lbl:`Cobro uso ${equipo==='ultraformer'?'Ultra':'Vol'} → ${dueno} (${pct(cfg.cruzado)})`,val:cop(cruzado),cls:'highlight'});
+    items.push({lbl:`${dueno} recibe`,val:cop(cruzado),cls:'success'});
+    items.push({lbl:`${visitante} recibe (${pct(1-cfg.cruzado)})`,val:cop(util-cruzado),cls:'success'});
+  }
+}
+
+// ===================== GUARDAR SESIÓN =====================
+async function guardarSesion(){
+  const pac=document.getElementById('f-paciente').value.trim();
+  const fecha=document.getElementById('f-fecha').value;
+  const eq=document.getElementById('f-equipo').value;
+  const med=document.getElementById('f-medico').value;
+  const zona=document.getElementById('f-zona').value;
+  const cuenta=document.getElementById('f-cuenta').value;
+  const cosmetologa=eq==='aquapure'?document.getElementById('f-cosmetologa').value.trim():'';
+  const precioInput=parseInt(document.getElementById('f-precio').value)||0;
+  const soloDisparos=document.getElementById('f-solo-disparos')?.checked&&
+    (eq==='ultraformer'||eq==='volnewmer'||eq==='volformer');
+  const descPct=(parseFloat(document.getElementById('f-descuento').value)||0)/100;
+  const descRazon=document.getElementById('f-descuento-razon').value.trim();
+  // precioFinal se calcula después de conocer costoTotal (para solo-disparos)
+  // se ajusta más abajo una vez calculado costoTotal
+  const nsesion=parseInt(document.getElementById('f-nsesion').value)||1;
+  const totalSesiones=parseInt(document.getElementById('f-total-sesiones').value)||1;
+  const esPaquete=document.getElementById('f-es-paquete').checked;
+  const notasPaquete=esPaquete?document.getElementById('f-notas-paquete').value.trim():'';
+  const notas=document.getElementById('f-notas').value.trim();
+  const refSel=document.getElementById('f-referido');
+  const refNombre=refSel.value;
+  const refTipo=refSel.options[refSel.selectedIndex]?.dataset.tipo||'';
+  const zonaVol=eq==='volformer'?document.getElementById('f-zona-vol').value:'';
+
+  if(!pac||!fecha||!eq||!med||!zona){alert('Completa los campos obligatorios: paciente, fecha, equipo, médico y zona.');return;}
+  if(!precioInput){alert('Ingresa el precio de la sesión.');return;}
+
+  // Validar y descontar transductores Ultraformer
+  let transUltra=[];
+  let costoUltra=0;
+  if(eq==='ultraformer'||eq==='volformer'){
+    const validas=ultraEntradas.filter(e=>e.transId&&parseInt(e.disparos)>0);
+    if(!validas.length){alert('Agrega al menos un transductor Ultraformer con disparos.');return;}
+    if(ultraEntradas.some(e=>!e.transId&&parseInt(e.disparos)>0)){alert('Selecciona transductor para todas las entradas Ultraformer.');return;}
+    if(ultraEntradas.some(e=>e.transId&&!(parseInt(e.disparos)>0))){alert('Ingresa disparos para todos los transductores Ultraformer.');return;}
+    const inv=getInventario('ultra');
+    validas.forEach(e=>{
+      const d=parseInt(e.disparos);
+      const t=inv.find(x=>x.id===e.transId);
+      if(t) t.disparosUsados=(t.disparosUsados||0)+d;
+      costoUltra+=d*700;
+      transUltra.push({transId:e.transId,disparos:d});
+    });
+    await setInventario('ultra',inv);
+  }
+
+  // Validar y descontar transductores Volnewmer
+  let transVol=[];
+  let costoVol=0;
+  if(eq==='volnewmer'||eq==='volformer'){
+    const validas=volEntradas.filter(e=>e.transId&&parseInt(e.disparos)>0);
+    if(!validas.length){alert('Agrega al menos un transductor Volnewmer con disparos.');return;}
+    if(volEntradas.some(e=>!e.transId&&parseInt(e.disparos)>0)){alert('Selecciona transductor para todas las entradas Volnewmer.');return;}
+    if(volEntradas.some(e=>e.transId&&!(parseInt(e.disparos)>0))){alert('Ingresa disparos para todos los transductores Volnewmer.');return;}
+    const inv=getInventario('vol');
+    validas.forEach(e=>{
+      const d=parseInt(e.disparos);
+      const t=inv.find(x=>x.id===e.transId);
+      const costoD=t?getCostoDisparo('vol',t.medida):0;
+      if(t) t.disparosUsados=(t.disparosUsados||0)+d;
+      costoVol+=d*costoD;
+      transVol.push({transId:e.transId,disparos:d,costoDisparo:costoD});
+    });
+    await setInventario('vol',inv);
+  }
+
+  const costoTotal=costoUltra+costoVol;
+  // Precio final: si es solo-disparos, precio = costo total disparos
+  const precioFinal=soloDisparos&&costoTotal>0 ? costoTotal : Math.round(precioInput*(1-descPct));
+  const descPctFinal=precioInput>0?(precioInput-precioFinal)/precioInput:descPct;
+  const utilBruta=precioFinal-costoTotal;
+  const cfg=getCfg();
+  const refPct=(refTipo==='cosmetologa')?(eq==='aquapure'?0.05:0.03):0;
+  const comisionRef=utilBruta*refPct;
+  const utilDespRef=utilBruta-comisionRef;
+
+  // Calcular desglose
+  let desglose={};
+  if(eq==='aquapure'){
+    const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===zona);
+    const costoConsumibles=proto?proto.costoConsumibles:0;
+    const pagoCosmeto=proto?proto.pagoCosmeto:0;
+    const utilDisponible=utilDespRef-costoConsumibles-pagoCosmeto;
+    const mant=utilDisponible*cfg.mant;
+    const admin=utilDisponible*cfg.admin;
+    const utilSocios=utilDisponible-mant-admin;
+    desglose={costoConsumibles,pagoCosmeto_limpieza:pagoCosmeto,mantenimiento:mant,admin,comisionRef,carolina:utilSocios/2,sneider:utilSocios/2};
+  } else if(eq==='ultraformer'){
+    desglose=_desgloseEquipo('ultraformer',med,utilDespRef,cfg,comisionRef);
+  } else if(eq==='volnewmer'){
+    desglose=_desgloseEquipo('volnewmer',med,utilDespRef,cfg,comisionRef);
+  } else if(eq==='volformer'){
+    const utilU=costoTotal>0?(costoUltra/costoTotal)*utilDespRef:utilDespRef/2;
+    const utilV=utilDespRef-utilU;
+    const dU=_desgloseEquipo('ultraformer',med,utilU,cfg,0);
+    const dV=_desgloseEquipo('volnewmer',med,utilV,cfg,0);
+    desglose={comisionRef,ultra:dU,vol:dV};
+  }
+
+  mostrarCargando(true);
+  const sesiones=getSesiones();
+  const nuevaSesion = {
+    id:Date.now(), paciente:pac, fecha, equipo:eq, zona, zonaVol, medico:med, cosmetologa,
+    esPaquete, nsesion:esPaquete?nsesion:1, totalSesiones:esPaquete?totalSesiones:1, notasPaquete, cuenta, notas,
+    precio:precioInput, precioFinal, descPct:descPctFinal, descRazon, soloDisparos,
+    costoUltra, costoVol, costoTotal,
+    transUltra, transVol,
+    referido:refNombre, referidoTipo:refTipo, comisionRef,
+    utilBruta, utilDespRef,
+    desglose, cfg:{...cfg},
+    registradoPor:currentUser||'—'
+  };
+  await agregarSesionDB(nuevaSesion);
+  mostrarCargando(false);
+  alert('Sesión guardada correctamente.');
+  limpiarForm();
+}
+
+function _desgloseEquipo(equipo,med,util,cfg,comisionRef){
+  const dueno=equipo==='ultraformer'?'Carolina':'Sneider';
+  const visitante=equipo==='ultraformer'?'Sneider':'Carolina';
+  if(med===dueno){
+    const mant=util*cfg.mant; const admin=util*cfg.admin;
+    return {mantenimiento:mant,admin,ganancia_dueno:util-mant-admin,comisionRef};
+  } else {
+    const cruzado=util*cfg.cruzado;
+    return {cobro_uso:cruzado,ganancia_dueno:cruzado,ganancia_otro:util-cruzado,comisionRef};
+  }
+}
+
+function limpiarForm(){
+  ['f-paciente','f-notas','f-descuento-razon','f-cosmetologa'].forEach(id=>document.getElementById(id).value='');
+  ['f-equipo','f-medico','f-zona','f-cuenta','f-referido'].forEach(id=>document.getElementById(id).selectedIndex=0);
+  document.getElementById('f-zona').innerHTML='<option value="">Seleccionar zona...</option>';
+  document.getElementById('f-zona-vol').innerHTML='<option value="">Seleccionar zona Volnewmer...</option>';
+  document.getElementById('f-precio').value='';
+  document.getElementById('f-descuento').value=0;
+  document.getElementById('f-nsesion').value=1;
+  document.getElementById('f-total-sesiones').value=3;
+  document.getElementById('f-es-paquete').checked=false;
+  document.getElementById('f-notas-paquete').value='';
+  document.getElementById('bloque-paquete').style.display='none';
+  document.getElementById('f-solo-disparos').checked=false;
+  document.getElementById('solo-disparos-info').style.display='none';
+  document.getElementById('campo-solo-disparos').style.display='none';
+  document.getElementById('result-box').classList.add('hidden');
+  ['bloque-ultra','bloque-vol','bloque-vol-zona'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('campo-cosmetologa').style.display='none';
+  document.getElementById('autocomplete-list').innerHTML='';
+  ultraEntradas=[]; volEntradas=[];
+  setFechaHoy();
+}
+
+// ===================== AUTOCOMPLETE PACIENTE =====================
+function autocompletePaciente(val){
+  if(val.length<2){document.getElementById('autocomplete-list').innerHTML='';return;}
+  const nombres=[...new Set(getSesiones().map(s=>s.paciente))].filter(n=>n.toLowerCase().includes(val.toLowerCase()));
+  const list=document.getElementById('autocomplete-list');
+  if(!nombres.length){list.innerHTML='';return;}
+  list.innerHTML=`<div style="position:absolute;background:white;border:1px solid #e2e8f0;border-radius:7px;z-index:99;width:100%;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+    ${nombres.slice(0,5).map(n=>`<div onclick="document.getElementById('f-paciente').value='${n}';document.getElementById('autocomplete-list').innerHTML=''" style="padding:7px 10px;cursor:pointer;font-size:12px" onmouseover="this.style.background='#f7fafc'" onmouseout="this.style.background='white'">${n}</div>`).join('')}
+  </div>`;
+}
+
+// ===================== HISTORIAL =====================
+function transLabelSesion(s){
+  const invU=getInventario('ultra');
+  const invV=getInventario('vol');
+  const partes=[];
+  if(s.transUltra&&s.transUltra.length){
+    s.transUltra.forEach(tu=>{const t=invU.find(x=>x.id===tu.transId);partes.push(`${t?t.tipo+' '+t.medida:tu.transId}×${tu.disparos}(U)`);});
+  }
+  if(s.transVol&&s.transVol.length){
+    s.transVol.forEach(tv=>{const t=invV.find(x=>x.id===tv.transId);partes.push(`${t?t.medida:tv.transId}×${tv.disparos}(V)`);});
+  }
+  return partes.length?partes.join(', '):'-';
+}
+
+function renderSesiones(){
+  const filtEq=document.getElementById('fil-equipo').value;
+  const filtMed=document.getElementById('fil-medico').value;
+  const filtBus=document.getElementById('fil-buscar').value.toLowerCase();
+  let sesiones=getSesiones().filter(s=>{
+    if(filtEq&&s.equipo!==filtEq) return false;
+    if(filtMed&&s.medico!==filtMed) return false;
+    if(filtBus&&!s.paciente.toLowerCase().includes(filtBus)) return false;
+    return true;
+  }).sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  const tb=document.getElementById('tabla-sesiones');
+  if(!sesiones.length){tb.innerHTML='<tr><td colspan="12" class="empty">Sin sesiones</td></tr>';return;}
+  tb.innerHTML=sesiones.map(s=>{
+    const descLabel=s.soloDisparos
+      ? `<span style="font-size:10px;color:#e53e3e;font-weight:700">Solo disparos</span>`
+      : s.descPct>0
+        ? `<span style="font-size:10px;color:#e53e3e">-${Math.round(s.descPct*100)}%${s.descRazon?' ('+s.descRazon+')':''}</span>`
+        : '—';
+    const sesLabel=s.esPaquete
+        ? `<span style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;padding:1px 6px;font-size:10px;color:#276749;font-weight:700" title="${s.notasPaquete||''}">Paquete ${s.nsesion}/${s.totalSesiones}</span>`
+        : `<span style="font-size:10px;color:#a0aec0">Única</span>`;
+    return `<tr>
+      <td>${s.fecha}</td>
+      <td><strong>${s.paciente}</strong></td>
+      <td><span class="tag tag-${s.equipo==='volformer'?'volformer':s.equipo==='volnewmer'?'vol':s.equipo==='ultraformer'?'ultra':'aqua'}">${s.equipo}</span></td>
+      <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${s.zona}">${s.zona}</td>
+      <td><strong>${cop(s.precioFinal||s.precio)}</strong></td>
+      <td>${descLabel}</td>
+      <td>
+        <span class="badge badge-${(s.medico||'').toLowerCase()}">${s.medico}</span>
+        ${s.cosmetologa?`<br><span style="font-size:10px;color:#718096">${s.cosmetologa}</span>`:''}
+      </td>
+      <td style="white-space:nowrap">${sesLabel}</td>
+      <td>${s.referido||'—'}</td>
+      <td style="font-size:10px;color:#718096">${s.registradoPor||'—'}</td>
+      <td>${s.cuenta||'—'}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-warning btn-sm" onclick="pedirEditarSesion(${s.id})" title="Editar">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="pedirDeleteSesion(${s.id})">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function pedirDeleteSesion(id){
+  pendingDeleteId=id;
+  document.getElementById('del-code').value='';
+  document.getElementById('del-err').textContent='';
+  document.getElementById('modal-delete').classList.remove('hidden');
+}
+function cerrarModalDelete(){document.getElementById('modal-delete').classList.add('hidden');pendingDeleteId=null;}
+async function confirmarDelete(){
+  const code=document.getElementById('del-code').value;
+  if(code!==DELETE_CODE){document.getElementById('del-err').textContent='Código incorrecto.';return;}
+  if(pendingDeleteId===null) return;
+  const sesiones=getSesiones();
+  const s=sesiones.find(x=>x.id===pendingDeleteId);
+  mostrarCargando(true);
+  if(s){
+    if(s.transUltra&&s.transUltra.length){
+      const inv=getInventario('ultra');
+      s.transUltra.forEach(tu=>{const t=inv.find(x=>x.id===tu.transId);if(t)t.disparosUsados=Math.max(0,(t.disparosUsados||0)-tu.disparos);});
+      await setInventario('ultra',inv);
+    }
+    if(s.transVol&&s.transVol.length){
+      const inv=getInventario('vol');
+      s.transVol.forEach(tv=>{const t=inv.find(x=>x.id===tv.transId);if(t)t.disparosUsados=Math.max(0,(t.disparosUsados||0)-tv.disparos);});
+      await setInventario('vol',inv);
+    }
+  }
+  await eliminarSesionDB(pendingDeleteId);
+  mostrarCargando(false);
+  cerrarModalDelete();
+  renderSesiones();
+}
+
+// ===================== EDITAR SESION =====================
+let pendingEditId = null;
+
+function pedirEditarSesion(id){
+  pendingEditId = id;
+  document.getElementById('edit-auth-code').value='';
+  document.getElementById('edit-auth-err').textContent='';
+  document.getElementById('modal-edit-auth').classList.remove('hidden');
+}
+function cerrarModalEditAuth(){
+  document.getElementById('modal-edit-auth').classList.add('hidden');
+  pendingEditId=null;
+}
+function confirmarEditAuth(){
+  const code=document.getElementById('edit-auth-code').value;
+  if(code!==DELETE_CODE){document.getElementById('edit-auth-err').textContent='Código incorrecto.';return;}
+  const s=getSesiones().find(x=>x.id===pendingEditId);
+  if(!s) return;
+  cerrarModalEditAuth();
+  abrirFormularioEdicion(s);
+}
+function abrirFormularioEdicion(s){
+  document.getElementById('edit-form-subtitle').textContent=`${s.paciente} — ${s.fecha} — ${s.equipo}`;
+  document.getElementById('ef-paciente').value=s.paciente||'';
+  document.getElementById('ef-fecha').value=s.fecha||'';
+  document.getElementById('ef-medico').value=s.medico||'Carolina';
+  document.getElementById('ef-cosmetologa').value=s.cosmetologa||'';
+  document.getElementById('ef-precio').value=s.precio||0;
+  document.getElementById('ef-descuento').value=Math.round((s.descPct||0)*100);
+  document.getElementById('ef-descuento-razon').value=s.descRazon||'';
+  document.getElementById('ef-cuenta').value=s.cuenta||'Carolina';
+  document.getElementById('ef-notas').value=s.notas||'';
+  // poblar referidos
+  const refs=getReferidos();
+  const sel=document.getElementById('ef-referido');
+  sel.innerHTML='<option value="">Sin referido</option>';
+  refs.forEach(r=>{
+    const o=document.createElement('option');
+    o.value=r.nombre; o.dataset.tipo=r.tipo;
+    o.textContent=r.nombre+(r.tipo==='cosmetologa'?' (cosm.)':'');
+    if(r.nombre===s.referido) o.selected=true;
+    sel.appendChild(o);
+  });
+  document.getElementById('modal-edit-form').classList.remove('hidden');
+}
+function cerrarModalEditForm(){
+  document.getElementById('modal-edit-form').classList.add('hidden');
+  pendingEditId=null;
+}
+async function guardarEdicion(){
+  const s=getSesiones().find(x=>x.id===pendingEditId);
+  if(!s) return;
+  const precioInput=parseInt(document.getElementById('ef-precio').value)||s.precio;
+  const descPct=(parseFloat(document.getElementById('ef-descuento').value)||0)/100;
+  const precioFinal=Math.round(precioInput*(1-descPct));
+  const refSel=document.getElementById('ef-referido');
+  const refNombre=refSel.value;
+  const refTipo=refSel.options[refSel.selectedIndex]?.dataset.tipo||'';
+  // Recalcular desglose financiero con los nuevos valores
+  const cfg=s.cfg||getCfg();
+  const costoTotal=s.costoTotal||0;
+  const utilBruta=precioFinal-costoTotal;
+  const refPct=(refTipo==='cosmetologa')?(s.equipo==='aquapure'?0.05:0.03):0;
+  const comisionRef=utilBruta*refPct;
+  const utilDespRef=utilBruta-comisionRef;
+  let desglose=s.desglose;
+  if(s.equipo==='ultraformer') desglose=_desgloseEquipo('ultraformer',document.getElementById('ef-medico').value,utilDespRef,cfg,comisionRef);
+  else if(s.equipo==='volnewmer') desglose=_desgloseEquipo('volnewmer',document.getElementById('ef-medico').value,utilDespRef,cfg,comisionRef);
+  else if(s.equipo==='aquapure'){
+    const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===s.zona);
+    const costoConsumibles=proto?proto.costoConsumibles:0;
+    const pagoCosmeto=proto?proto.pagoCosmeto:0;
+    const utilDisponible=utilDespRef-costoConsumibles-pagoCosmeto;
+    const mant=utilDisponible*cfg.mant;
+    const admin=utilDisponible*cfg.admin;
+    const utilSocios=utilDisponible-mant-admin;
+    desglose={costoConsumibles,pagoCosmeto_limpieza:pagoCosmeto,mantenimiento:mant,admin,comisionRef,carolina:utilSocios/2,sneider:utilSocios/2};
+  }
+  const sesionEditada={
+    ...s,
+    paciente:document.getElementById('ef-paciente').value.trim()||s.paciente,
+    fecha:document.getElementById('ef-fecha').value||s.fecha,
+    medico:document.getElementById('ef-medico').value,
+    cosmetologa:document.getElementById('ef-cosmetologa').value.trim(),
+    precio:precioInput, precioFinal, descPct, descRazon:document.getElementById('ef-descuento-razon').value.trim(),
+    cuenta:document.getElementById('ef-cuenta').value,
+    notas:document.getElementById('ef-notas').value.trim(),
+    referido:refNombre, referidoTipo:refTipo, comisionRef,
+    utilBruta, utilDespRef, desglose,
+    editadoPor:currentUser||'—', fechaEdicion:new Date().toISOString().split('T')[0]
+  };
+  mostrarCargando(true);
+  // Actualizar en cache y Supabase
+  _cache.sesiones=(_cache.sesiones||[]).map(x=>x.id===pendingEditId?sesionEditada:x);
+  await sbUpsert('sesiones',{id:sesionEditada.id, data:sesionEditada});
+  mostrarCargando(false);
+  cerrarModalEditForm();
+  renderSesiones();
+  alert('Sesión actualizada correctamente.');
+}
+function renderPacientes(){
+  const buscar=(document.getElementById('buscar-paciente').value||'').toLowerCase();
+  const sesiones=getSesiones();
+  const map={};
+  sesiones.forEach(s=>{if(!map[s.paciente])map[s.paciente]={nombre:s.paciente,sesiones:[]};map[s.paciente].sesiones.push(s);});
+  const pacientes=Object.values(map).filter(p=>!buscar||p.nombre.toLowerCase().includes(buscar));
+  const cont=document.getElementById('lista-pacientes');
+  if(!pacientes.length){cont.innerHTML='<div class="empty">Sin pacientes registrados</div>';return;}
+  cont.innerHTML=pacientes.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(p=>{
+    const total=p.sesiones.reduce((acc,s)=>acc+(s.precioFinal||s.precio),0);
+    const equipos=[...new Set(p.sesiones.map(s=>s.equipo))];
+    const rows=p.sesiones.sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(s=>{
+      const sesLabel=s.esPaquete
+        ? `<span style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;padding:1px 6px;font-size:10px;color:#276749;font-weight:700" title="${s.notasPaquete||''}">${s.nsesion}/${s.totalSesiones}</span>`
+        : `<span style="font-size:10px;color:#a0aec0">Única</span>`;
+      return `<tr>
+        <td>${s.fecha}</td>
+        <td><span class="tag tag-${s.equipo==='volformer'?'volformer':s.equipo==='volnewmer'?'vol':s.equipo==='ultraformer'?'ultra':'aqua'}">${s.equipo}</span></td>
+        <td>${s.zona}</td>
+        <td><span class="badge badge-${(s.medico||'').toLowerCase()}">${s.medico}</span>${s.cosmetologa?` <span style="font-size:10px;color:#718096">${s.cosmetologa}</span>`:''}</td>
+        <td>${sesLabel}</td>
+        <td>${cop(s.precioFinal||s.precio)}</td>
+        <td>${s.referido||'—'}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="pedirDeleteSesion(${s.id});renderPacientes()">×</button></td>
+      </tr>`;
+    }).join('');
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div>
+          <div style="font-weight:700;font-size:14px">${p.nombre}</div>
+          <div style="font-size:11px;color:#718096;margin-top:2px">${p.sesiones.length} sesión(es) · ${equipos.map(e=>`<span class="tag tag-${e==='volformer'?'volformer':e==='volnewmer'?'vol':e==='ultraformer'?'ultra':'aqua'}">${e}</span>`).join(' ')}</div>
+        </div>
+        <div style="text-align:right"><div style="font-size:17px;font-weight:700;color:#667eea">${cop(total)}</div><div style="font-size:10px;color:#a0aec0">total facturado</div></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Equipo</th><th>Zona</th><th>Médico</th><th>Sesión</th><th>Precio</th><th>Referido</th><th>Acc.</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }).join('');
+}
+
+// ===================== FINANCIERO =====================
+function renderFinanciero(){
+  const sesiones=getSesiones();
+  const totalFact=sesiones.reduce((a,s)=>a+(s.precioFinal||s.precio),0);
+  let carolinaTot=0,sneiderTot=0,santiagoTot=0,mantTot=0;
+  let cosmetLimpiezaTot=0, cosmetComisionTot={};  // por cosmetóloga
+  let referidoComisionTot={};
+  let totalDescuentos=sesiones.reduce((a,s)=>a+(s.precio-(s.precioFinal||s.precio)),0);
+
+  sesiones.forEach(s=>{
+    const d=s.desglose||{};
+    const eq=s.equipo; const med=s.medico;
+    // acumular comisión referido
+    if(s.referido&&s.comisionRef>0){
+      if(!referidoComisionTot[s.referido]) referidoComisionTot[s.referido]=0;
+      referidoComisionTot[s.referido]+=s.comisionRef;
+    }
+    if(eq==='aquapure'){
+      cosmetLimpiezaTot+=d.pagoCosmeto_limpieza||0;
+      if(s.cosmetologa&&d.pagoCosmeto_limpieza>0){
+        if(!cosmetComisionTot[s.cosmetologa]) cosmetComisionTot[s.cosmetologa]={limpieza:0,comision:0};
+        cosmetComisionTot[s.cosmetologa].limpieza+=d.pagoCosmeto_limpieza||0;
+      }
+      santiagoTot+=d.admin||0;
+      mantTot+=d.mantenimiento||0;
+      carolinaTot+=d.carolina||0;
+      sneiderTot+=d.sneider||0;
+    } else if(eq==='ultraformer'){
+      const du=d.ultra||d;
+      if(med==='Carolina'){carolinaTot+=du.ganancia_dueno||0; mantTot+=du.mantenimiento||0; santiagoTot+=du.admin||0;}
+      else {sneiderTot+=du.ganancia_otro||0; carolinaTot+=du.ganancia_dueno||0;}
+    } else if(eq==='volnewmer'){
+      const dv=d.vol||d;
+      if(med==='Sneider'){sneiderTot+=dv.ganancia_dueno||0; mantTot+=dv.mantenimiento||0; santiagoTot+=dv.admin||0;}
+      else {carolinaTot+=dv.ganancia_otro||0; sneiderTot+=dv.ganancia_dueno||0;}
+    } else if(eq==='volformer'){
+      const dU=d.ultra||{};const dV=d.vol||{};
+      if(med==='Carolina'){
+        carolinaTot+=(dU.ganancia_dueno||0)+(dV.ganancia_otro||0);
+        sneiderTot+=(dU.ganancia_otro||0)+(dV.ganancia_dueno||0);
+      } else {
+        sneiderTot+=(dV.ganancia_dueno||0)+(dU.ganancia_otro||0);
+        carolinaTot+=(dV.ganancia_otro||0)+(dU.ganancia_dueno||0);
+      }
+      mantTot+=(dU.mantenimiento||0)+(dV.mantenimiento||0);
+      santiagoTot+=(dU.admin||0)+(dV.admin||0);
+    }
+  });
+
+  // acumular comisiones de cosmetólogas en referidoComisionTot
+  Object.entries(referidoComisionTot).forEach(([nombre,val])=>{
+    if(!cosmetComisionTot[nombre]) cosmetComisionTot[nombre]={limpieza:0,comision:0};
+    cosmetComisionTot[nombre].comision+=val;
+  });
+
+  const byEq={};
+  sesiones.forEach(s=>{
+    if(!byEq[s.equipo]) byEq[s.equipo]={count:0,total:0};
+    byEq[s.equipo].count++; byEq[s.equipo].total+=(s.precioFinal||s.precio);
+  });
+
+  const cosmetRows=Object.entries(cosmetComisionTot).map(([nombre,v])=>`<tr>
+    <td><strong>${nombre}</strong></td>
+    <td>${cop(v.limpieza)}</td>
+    <td>${cop(v.comision)}</td>
+    <td><strong>${cop(v.limpieza+v.comision)}</strong></td>
+  </tr>`).join('');
+
+  document.getElementById('stats-container').innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="number">${sesiones.length}</div><div class="label">Sesiones totales</div></div>
+      <div class="stat-card"><div class="number" style="color:#667eea">${cop(totalFact)}</div><div class="label">Facturación total</div></div>
+      <div class="stat-card"><div class="number" style="color:#be185d">${cop(carolinaTot)}</div><div class="label">Ganancias Carolina</div></div>
+      <div class="stat-card"><div class="number" style="color:#3730a3">${cop(sneiderTot)}</div><div class="label">Ganancias Sneider</div></div>
+    </div>
+    <div class="card"><div class="card-title">Distribución general</div>
+      <div class="result-grid">
+        <div class="result-item success"><div class="val">${cop(carolinaTot)}</div><div class="lbl">Carolina</div></div>
+        <div class="result-item highlight"><div class="val">${cop(sneiderTot)}</div><div class="lbl">Sneider</div></div>
+        <div class="result-item"><div class="val">${cop(santiagoTot)}</div><div class="lbl">Santiago (Admin)</div></div>
+        <div class="result-item warning"><div class="val">${cop(mantTot)}</div><div class="lbl">Reserva mantenimiento</div></div>
+        <div class="result-item warning"><div class="val">${cop(cosmetLimpiezaTot)}</div><div class="lbl">Pago cosmetólogas</div></div>
+        <div class="result-item danger"><div class="val">${cop(totalDescuentos)}</div><div class="lbl">Total descuentos</div></div>
+      </div>
+    </div>
+    ${cosmetRows?`<div class="card"><div class="card-title">Ingresos cosmetólogas</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Cosmetóloga</th><th>Por limpiezas</th><th>Comisiones referidos</th><th>Total</th></tr></thead>
+        <tbody>${cosmetRows}</tbody>
+      </table></div>
+    </div>`:''}
+    <div class="card"><div class="card-title">Por equipo</div>
+      <table><thead><tr><th>Equipo</th><th>Sesiones</th><th>Facturado</th></tr></thead><tbody>
+        ${['ultraformer','volnewmer','volformer','aquapure'].map(eq=>`<tr>
+          <td><span class="tag tag-${eq==='volformer'?'volformer':eq==='volnewmer'?'vol':eq==='ultraformer'?'ultra':'aqua'}">${eq}</span></td>
+          <td>${byEq[eq]?.count||0}</td><td>${cop(byEq[eq]?.total||0)}</td>
+        </tr>`).join('')}
+      </tbody></table>
+    </div>`;
+}
+
+// ===================== EXPORT =====================
+function exportarExcel(){
+  const sesiones=getSesiones();
+  if(!sesiones.length){alert('No hay sesiones para exportar.');return;}
+  const wb=XLSX.utils.book_new();
+  const rows=[['Fecha','Paciente','Equipo','Zona','Precio bruto','Descuento %','Precio final','Médico','Cosmetóloga','Sesión','Referido','Comisión referido','Registró','Cuenta','Costo Ultra','Costo Vol','Notas']];
+  sesiones.forEach(s=>{
+    rows.push([s.fecha,s.paciente,s.equipo,s.zona,s.precio,Math.round((s.descPct||0)*100)+'%',s.precioFinal||s.precio,s.medico,s.cosmetologa||'',`${s.nsesion} de ${s.totalSesiones}`,s.referido||'',s.comisionRef||0,s.registradoPor||'',s.cuenta||'',s.costoUltra||0,s.costoVol||0,s.notas||'']);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Sesiones');
+  // Inventarios
+  ['ultra','vol'].forEach(eq=>{
+    const inv=getInventario(eq);
+    const hr=[['ID','Tipo','Medida','Etiqueta','F.Compra','Disp.Usados','Disp.Restantes','%Vida','Estado']];
+    inv.forEach(t=>{
+      const tot=getTotalDisparos(eq,t.medida);
+      const rest=Math.max(0,tot-(t.disparosUsados||0));
+      hr.push([t.id,t.tipo,t.medida,t.etiqueta||'',t.fechaCompra||'',t.disparosUsados||0,rest,Math.round(((t.disparosUsados||0)/tot)*100)+'%',t.retirado?'Retirado':rest<=0?'Agotado':'Activo']);
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(hr),'Trans_'+(eq==='ultra'?'Ultra':'Vol'));
+  });
+  // Soluciones
+  const sols=getSoluciones();
+  const sr=[['Fecha','Solución','Cantidad']];
+  sols.forEach(s=>sr.push([s.fecha,s.tipo,s.cantidad]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sr),'Soluciones_Aquapure');
+  XLSX.writeFile(wb,'Control_Dermatologico_'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
+async function borrarTodo(){
+  if(!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.'))return;
+  mostrarCargando(true);
+  await Promise.all([
+    fetch(`${SUPA_URL}/rest/v1/sesiones?id=gt.0`,{method:'DELETE',headers:H}),
+    fetch(`${SUPA_URL}/rest/v1/inventario_ultra?id=neq.___`,{method:'DELETE',headers:H}),
+    fetch(`${SUPA_URL}/rest/v1/inventario_vol?id=neq.___`,{method:'DELETE',headers:H}),
+    fetch(`${SUPA_URL}/rest/v1/soluciones?id=gt.0`,{method:'DELETE',headers:H}),
+  ]);
+  _cache={sesiones:[],ultra:[],vol:[],soluciones:[],cfg:_cache.cfg,referidos:_cache.referidos};
+  mostrarCargando(false);
+  alert('Datos eliminados.');
+}
+
+cargarConfig(); setFechaHoy(); poblarReferidos();
+cargarDatos();
+</script>
+</body>
+</html>
