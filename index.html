@@ -366,6 +366,7 @@ tr:hover td{background:#f7fafc}
   <div class="nav-item" data-page="pacientes" onclick="goPage(this)">Por paciente</div>
   <div class="nav-item" data-page="financiero" onclick="goPage(this)">Resumen financiero</div>
   <div class="nav-item" data-page="cotizaciones" onclick="goPage(this)">Cotizaciones</div>
+  <div class="nav-item" data-page="tarifario" onclick="goPage(this)">Tarifario</div>
   <div class="nav-section">Inventario</div>
   <div class="nav-item" data-page="inv-ultra" onclick="goPage(this)">Transductores Ultraformer</div>
   <div class="nav-item" data-page="inv-vol" onclick="goPage(this)">Transductores Volnewmer</div>
@@ -661,6 +662,12 @@ tr:hover td{background:#f7fafc}
         </select>
         <button type="button" class="btn btn-outline btn-sm" onclick="agregarZonaCot()" style="white-space:nowrap">+ Agregar</button>
       </div>
+      <div style="display:flex;gap:7px;align-items:center;margin-top:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:#718096;font-weight:600;white-space:nowrap">Inyectable / Procedimiento:</span>
+        <input type="text" id="cot-inj-nombre" placeholder="Nombre del procedimiento" style="flex:1;min-width:160px;padding:7px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none">
+        <input type="number" id="cot-inj-precio" placeholder="Precio" min="0" style="width:120px;padding:7px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none">
+        <button type="button" class="btn btn-outline btn-sm" onclick="agregarInyectableCot()" style="white-space:nowrap">+ Agregar</button>
+      </div>
       <div id="cot-items-lista"></div>
       <div id="cot-total-wrap" style="display:none;text-align:right;padding:10px 12px;background:#f7f5f3;border:1px solid #e2e8f0;border-radius:8px;margin-top:6px">
         <span style="font-size:13px;color:#4a5568">Total estimado: </span>
@@ -689,6 +696,26 @@ tr:hover td{background:#f7fafc}
     </div>
     <div id="cot-empty" class="empty" style="display:none">Aún no tienes cotizaciones. ¡Crea la primera!</div>
   </div>
+</div>
+
+<!-- TARIFARIO -->
+<div class="page" id="page-tarifario">
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div><h1>Tarifario</h1><p>Precios, disparos y costo por zona según equipo</p></div>
+      <div style="display:flex;gap:7px;align-items:center">
+        <select id="tar-filtro-equipo" onchange="renderTarifario()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
+          <option value="">Todos los equipos</option>
+          <option value="ultraformer">Ultraformer</option>
+          <option value="volnewmer">Volnewmer</option>
+          <option value="volformer">Volformer</option>
+          <option value="aquapure">Aquapure</option>
+        </select>
+        <input type="text" id="tar-filtro-buscar" oninput="renderTarifario()" placeholder="Buscar zona..." style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;outline:none;width:150px">
+      </div>
+    </div>
+  </div>
+  <div id="tarifario-container"></div>
 </div>
 
 <!-- INVENTARIO ULTRAFORMER -->
@@ -1487,6 +1514,7 @@ function goPage(el){
   if(p==='inv-aqua') renderInvAqua();
   if(p==='protocolos') renderProtocolos();
   if(p==='cotizaciones') renderCotizaciones();
+  if(p==='tarifario') renderTarifario();
   if(p==='config'){renderReferidosPreview();}
 }
 
@@ -2592,6 +2620,86 @@ const LOGO_SNEIDER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAV4AAAC0CAYA
 let cotItems = [];
 let _cotEditId = null;
 
+// ===================== TARIFARIO =====================
+function calcCostoDisparos(p){
+  if(p.equipo==='ultraformer'){
+    return (p.disparos_ref||0)*700;
+  }
+  if(p.equipo==='volnewmer'||p.equipo==='volformer'){
+    const dv=p.disparos_vol||{};
+    return (dv['0']||0)*912.33+(dv['3']||0)*1368.5+(dv['4']||0)*1824.67+(dv['16']||0)*1824.67;
+  }
+  if(p.equipo==='aquapure'){
+    return (p.costo_consumibles||0)+(p.pago_cosmeto||0);
+  }
+  return 0;
+}
+
+function renderTarifario(){
+  const cont=document.getElementById('tarifario-container');
+  if(!cont) return;
+  const fuente=(_protosDB&&_protosDB.length)?_protosDB:_PROTO_FALLBACK;
+  const filtroEq=(document.getElementById('tar-filtro-equipo')||{}).value||'';
+  const filtroBuscar=((document.getElementById('tar-filtro-buscar')||{}).value||'').toLowerCase();
+  const equipos=filtroEq?[filtroEq]:['ultraformer','volnewmer','volformer','aquapure'];
+  const labels={ultraformer:'Ultraformer',volnewmer:'Volnewmer',volformer:'Volformer',aquapure:'Aquapure'};
+  const colores={ultraformer:'#ede9fe',volnewmer:'#e0e7ff',volformer:'#fce7f3',aquapure:'#cffafe'};
+  const textColor={ultraformer:'#5b21b6',volnewmer:'#3730a3',volformer:'#be185d',aquapure:'#155e75'};
+
+  cont.innerHTML=equipos.map(eq=>{
+    let protos=fuente.filter(p=>p.equipo===eq&&p.activo!==false);
+    if(filtroBuscar) protos=protos.filter(p=>p.nombre.toLowerCase().includes(filtroBuscar));
+    if(!protos.length) return '';
+
+    const esAqua=eq==='aquapure';
+    const esVol=eq==='volnewmer'||eq==='volformer';
+
+    const encabezado=esAqua
+      ?'<th>Consumibles</th><th>Cosmeto</th><th>Costo total</th>'
+      :'<th>Disparos ref.</th><th>Costo disparos</th>';
+
+    const filas=protos.map(p=>{
+      const costo=calcCostoDisparos(p);
+      let celdas;
+      if(esAqua){
+        celdas='<td>'+cop(p.costo_consumibles||0)+'</td>'
+          +'<td>'+cop(p.pago_cosmeto||0)+'</td>'
+          +'<td><strong>'+cop(costo)+'</strong></td>';
+      } else if(esVol){
+        const dv=p.disparos_vol||{};
+        const resumen=Object.entries({'0.25mm':dv['0']||0,'3mm':dv['3']||0,'4mm':dv['4']||0,'16mm':dv['16']||0})
+          .filter(([,v])=>v>0).map(([k,v])=>v+' '+k).join(' · ')||'—';
+        celdas='<td style="font-size:11px;color:#4a5568">'+resumen+'</td>'
+          +'<td><strong>'+cop(Math.round(costo))+'</strong></td>';
+      } else {
+        celdas='<td>'+(p.disparos_ref||'—')+'</td>'
+          +'<td><strong>'+cop(costo)+'</strong></td>';
+      }
+      const precioDoc=p.precio_doc?'<div style="font-size:10px;color:#718096">Doc: '+cop(p.precio_doc)+'</div>':'';
+      return '<tr>'
+        +'<td><strong>'+p.nombre+'</strong></td>'
+        +'<td>'+cop(p.precio)+precioDoc+'</td>'
+        +celdas
+        +'</tr>';
+    }).join('');
+
+    return '<div class="card">'
+      +'<div class="card-title" style="display:flex;align-items:center;gap:8px">'
+      +'<span style="background:'+colores[eq]+';color:'+textColor[eq]+';padding:2px 10px;border-radius:20px;font-size:11px">'+labels[eq]+'</span>'
+      +'<span style="font-weight:400;color:#a0aec0;font-size:11px">'+protos.length+' zonas</span>'
+      +'</div>'
+      +'<div class="table-wrap"><table>'
+      +'<thead><tr><th>Zona / Protocolo</th><th>Precio paciente</th>'+encabezado+'</tr></thead>'
+      +'<tbody>'+filas+'</tbody>'
+      +'</table></div>'
+      +'</div>';
+  }).join('');
+
+  if(!cont.innerHTML.trim()){
+    cont.innerHTML='<div class="empty">No hay protocolos que coincidan con el filtro.</div>';
+  }
+}
+
 function getCotizaciones(){ return (_cache.cotizaciones||[]).filter(c=>c.doctor===currentUser); }
 
 function abrirNuevaCotizacion(){
@@ -2665,11 +2773,22 @@ function agregarZonaCot(){
   const opt=zonaEl.options[zonaEl.selectedIndex];
   if(!opt||!opt.value){alert('Selecciona una zona.');return;}
   const precio=parseInt(opt.dataset.precio)||0;
-  cotItems.push({nombre:opt.value,descripcion:opt.value,precio});
+  const eq=document.getElementById('cot-equipo').value;
+  const _eqLabel={ultraformer:'Ultraformer',volnewmer:'Volnewmer',volformer:'Volformer',aquapure:'Aquapure'};
+  cotItems.push({nombre:opt.value,descripcion:opt.value,precio,equipo:_eqLabel[eq]||eq});
   zonaEl.selectedIndex=0;
   renderCotItems();
 }
 
+function agregarInyectableCot(){
+  const nom=document.getElementById('cot-inj-nombre').value.trim();
+  const precio=parseInt(document.getElementById('cot-inj-precio').value)||0;
+  if(!nom){alert('Escribe el nombre del procedimiento.');return;}
+  cotItems.push({nombre:nom,descripcion:nom,precio,equipo:null});
+  document.getElementById('cot-inj-nombre').value='';
+  document.getElementById('cot-inj-precio').value='';
+  renderCotItems();
+}
 function quitarZonaCot(idx){cotItems.splice(idx,1);renderCotItems();}
 function updateCotItemDesc(idx,val){cotItems[idx].descripcion=val;}
 function updateCotItemPrecio(idx,val){
@@ -2687,7 +2806,11 @@ function renderCotItems(){
   }
   const total=cotItems.reduce((a,i)=>a+i.precio,0);
   lista.innerHTML=cotItems.map(function(item,idx){
-    return '<div style="display:grid;grid-template-columns:1fr 160px auto;gap:7px;align-items:center;padding:8px 10px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:7px;margin-bottom:5px">'
+    const tag=item.equipo
+      ?'<span style="font-size:10px;background:#ede9fe;color:#5b21b6;padding:2px 7px;border-radius:5px;white-space:nowrap">'+item.equipo+'</span>'
+      :'<span style="font-size:10px;background:#fce7f3;color:#be185d;padding:2px 7px;border-radius:5px;white-space:nowrap">Inyectable</span>';
+    return '<div style="display:grid;grid-template-columns:auto 1fr 160px auto;gap:7px;align-items:center;padding:8px 10px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:7px;margin-bottom:5px">'
+      +tag
       +'<input type="text" value="'+item.descripcion.replace(/"/g,'&quot;')+'" oninput="updateCotItemDesc('+idx+',this.value)" placeholder="Descripci\u00f3n para el paciente" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px">'
       +'<input type="number" value="'+item.precio+'" min="0" oninput="updateCotItemPrecio('+idx+',this.value)" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;text-align:right">'
       +'<button type="button" class="btn btn-danger btn-sm" onclick="quitarZonaCot('+idx+')" style="padding:3px 8px">\u00d7</button></div>';
@@ -2793,8 +2916,11 @@ function generarPDFCotizacion(id){
     :'<div style="font-size:22px;font-weight:700;color:'+acento+';text-align:center">'+paraDr+'</div>';
 
   const filas=zonas.map(function(z){
+    const equipoLinea=z.equipo
+      ?'<span style="font-size:9px;color:#9a9a9a;display:block;margin-bottom:1px">'+z.equipo+'</span>'
+      :'<span style="font-size:9px;color:#be185d;display:block;margin-bottom:1px">Inyectable</span>';
     return '<tr>'
-      +'<td style="padding:10px 0;border-bottom:1px solid #efefef;font-size:12.5px;color:#2d3748">'+(z.descripcion||z.nombre)+'</td>'
+      +'<td style="padding:10px 0;border-bottom:1px solid #efefef;font-size:12.5px;color:#2d3748">'+equipoLinea+(z.descripcion||z.nombre)+'</td>'
       +'<td style="padding:10px 0;border-bottom:1px solid #efefef;font-size:12.5px;color:#2d3748;text-align:right;white-space:nowrap;font-weight:600">'+cop(z.precio)+'</td>'
       +'</tr>';
   }).join('');
