@@ -98,7 +98,7 @@ tr:hover td{background:#f7fafc}
 .login-box{background:white;border-radius:14px;padding:32px;max-width:320px;width:90%;text-align:center}
 .login-box h1{font-size:18px;font-weight:700;margin-bottom:5px;color:#2d3748}
 .login-box p{font-size:12px;color:#718096;margin-bottom:20px}
-.login-box input{width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:14px;text-align:center;letter-spacing:4px;margin-bottom:9px;outline:none}
+.login-box input{width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:14px;text-align:left;margin-bottom:9px;outline:none}
 .login-err{font-size:11px;color:#e53e3e;margin-bottom:8px;min-height:16px}
 .disparo-row{background:#fffbeb;border:1px solid #fbd38d;border-radius:7px;padding:11px;margin-top:10px}
 .disparo-row .dr-title{font-size:11px;font-weight:700;color:#744210;margin-bottom:7px}
@@ -142,8 +142,9 @@ tr:hover td{background:#f7fafc}
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <h1>Dermato Control</h1>
-    <p>Ingresa tu PIN de acceso</p>
-    <input type="password" id="login-pin" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')tryLogin()">
+    <p>Ingresa con tu correo y contraseña</p>
+    <input type="email" id="login-email" placeholder="correo@ejemplo.com" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()" autocomplete="username">
+    <input type="password" id="login-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')tryLogin()" autocomplete="current-password">
     <div class="login-err" id="login-err"></div>
     <button class="btn btn-primary" style="width:100%" onclick="tryLogin()">Ingresar</button>
   </div>
@@ -796,7 +797,12 @@ tr:hover td{background:#f7fafc}
 
 <script>
 // ===================== CONSTANTES =====================
-const USUARIOS = {'1234':'Santiago','5678':'Carolina','9012':'Sneider'};
+const EMAIL_TO_USER = {
+  'santiagomejia930314@gmail.com': 'Santiago',
+  'carolinamejiadermatologia@gmail.com': 'Carolina',
+  'sneidertorres07@gmail.com': 'Sneider'
+};
+let _authToken = null;
 const DELETE_CODE = '5027';
 
 // Transductores Ultraformer
@@ -901,37 +907,88 @@ function cop(v){return '$'+Math.round(v).toLocaleString('es-CO');}
 function pct(v){return Math.round(v*100)+'%';}
 
 // ===================== LOGIN =====================
-function tryLogin(){
-  const pin=document.getElementById('login-pin').value;
-  if(USUARIOS[pin]){
-    currentUser=USUARIOS[pin];
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('main-app').style.display='flex';
-    document.getElementById('sidebar-user-label').textContent='Usuario: '+currentUser;
-    document.getElementById('topbar-user-label').textContent=currentUser;
-    sessionStorage.setItem('derma-user',pin);
-    cargarConfig(); setFechaHoy(); poblarReferidos(); cargarDatos();
-    document.getElementById('login-pin').value='';
+function _onLoginSuccess(nombre){
+  currentUser = nombre;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-app').style.display='flex';
+  document.getElementById('sidebar-user-label').textContent='Usuario: '+currentUser;
+  document.getElementById('topbar-user-label').textContent=currentUser;
+  cargarConfig(); setFechaHoy(); poblarReferidos(); cargarDatos();
+}
+
+async function tryLogin(){
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+  if(!email||!pass){ errEl.textContent='Ingresa correo y contraseña.'; return; }
+
+  try {
+    const res = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','apikey':SUPA_KEY},
+      body: JSON.stringify({email, password: pass})
+    });
+    const data = await res.json();
+    if(!res.ok){ errEl.textContent = data.error_description || data.msg || 'Credenciales incorrectas.'; return; }
+
+    const nombre = EMAIL_TO_USER[email];
+    if(!nombre){ errEl.textContent = 'Usuario no autorizado.'; return; }
+
+    _authToken = data.access_token;
+    sessionStorage.setItem('derma-token', data.access_token);
+    sessionStorage.setItem('derma-refresh', data.refresh_token||'');
+    sessionStorage.setItem('derma-email', email);
+    document.getElementById('login-pass').value='';
+    _onLoginSuccess(nombre);
+  } catch(e){
+    errEl.textContent = 'Error de red. Intenta de nuevo.';
   }
 }
-function cerrarSesion(){
-  sessionStorage.removeItem('derma-user');
-  currentUser=null;
+
+async function cerrarSesion(){
+  const token = _authToken;
+  _authToken = null;
+  sessionStorage.removeItem('derma-token');
+  sessionStorage.removeItem('derma-refresh');
+  sessionStorage.removeItem('derma-email');
+  currentUser = null;
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('main-app').style.display='none';
-  document.getElementById('login-pin').value='';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-pass').value='';
   document.getElementById('login-err').textContent='';
-}
-(function(){
-  const p=sessionStorage.getItem('derma-user');
-  if(p&&USUARIOS[p]){
-    currentUser=USUARIOS[p];
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('main-app').style.display='flex';
-    document.getElementById('sidebar-user-label').textContent='Usuario: '+currentUser;
-    document.getElementById('topbar-user-label').textContent=currentUser;
-    cargarConfig(); setFechaHoy(); poblarReferidos(); cargarDatos();
+  // Invalidar sesión en Supabase (best effort)
+  if(token){
+    fetch(`${SUPA_URL}/auth/v1/logout`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token}
+    }).catch(()=>{});
   }
+}
+
+// Auto-login al cargar página si hay token guardado
+(async function(){
+  const token = sessionStorage.getItem('derma-token');
+  const email = sessionStorage.getItem('derma-email');
+  if(!token||!email) return;
+  const nombre = EMAIL_TO_USER[email];
+  if(!nombre){ sessionStorage.clear(); return; }
+
+  // Verificar que el token siga siendo válido
+  try {
+    const res = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+token}
+    });
+    if(res.ok){
+      _authToken = token;
+      _onLoginSuccess(nombre);
+    } else {
+      sessionStorage.removeItem('derma-token');
+      sessionStorage.removeItem('derma-refresh');
+      sessionStorage.removeItem('derma-email');
+    }
+  } catch(e){ /* sin red — dejamos la pantalla de login */ }
 })();
 
 // ===================== CONFIG =====================
@@ -998,23 +1055,29 @@ function renderReferidosPreview(){
 // ===================== SUPABASE CONFIG =====================
 const SUPA_URL = 'https://sfcdoeuyjtmeovvderim.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmY2RvZXV5anRtZW92dmRlcmltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MTMzNTQsImV4cCI6MjA5MDk4OTM1NH0.8E35cofE8kLb5RhmpIc5Q0ygdKTRiy_9z0NHzNGPl3Q';
+function getH(){
+  const token = _authToken || SUPA_KEY;
+  return {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token};
+}
+// Alias para compatibilidad con código existente que usa H directamente
+// (las funciones sbGet/sbUpsert/sbDelete se actualizan para usar getH())
 const H = {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
 
 // Cache local para lecturas rápidas (se sincroniza al cargar y después de cada escritura)
 let _cache = {sesiones:null, ultra:null, vol:null, soluciones:null, cfg:null, referidos:null, cotizaciones:null};
 
 async function sbGet(tabla){
-  const r = await fetch(`${SUPA_URL}/rest/v1/${tabla}?select=*`, {headers:H});
+  const r = await fetch(`${SUPA_URL}/rest/v1/${tabla}?select=*`, {headers:getH()});
   return r.ok ? await r.json() : [];
 }
 async function sbUpsert(tabla, row){
   await fetch(`${SUPA_URL}/rest/v1/${tabla}`, {
-    method:'POST', headers:{...H,'Prefer':'resolution=merge-duplicates'},
+    method:'POST', headers:{...getH(),'Prefer':'resolution=merge-duplicates'},
     body: JSON.stringify(row)
   });
 }
 async function sbDelete(tabla, col, val){
-  await fetch(`${SUPA_URL}/rest/v1/${tabla}?${col}=eq.${val}`, {method:'DELETE', headers:H});
+  await fetch(`${SUPA_URL}/rest/v1/${tabla}?${col}=eq.${val}`, {method:'DELETE', headers:getH()});
 }
 
 // Carga inicial de todos los datos desde Supabase al cache local
