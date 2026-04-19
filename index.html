@@ -586,6 +586,7 @@ tr:hover td{background:#f7fafc}
   <div class="card">
     <div class="filter-bar">
       <input type="text" id="buscar-paciente" placeholder="Buscar paciente..." oninput="renderPacientes()" style="flex:1">
+      <button class="btn btn-outline btn-sm" onclick="exportarExcelPacientes()">Exportar Excel</button>
     </div>
     <div id="lista-pacientes"></div>
   </div>
@@ -723,7 +724,10 @@ tr:hover td{background:#f7fafc}
   <div class="page-header">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
       <div><h1>Transductores Ultraformer</h1><p>Unidades físicas, disparos disponibles y estado</p></div>
-      <button class="btn btn-success" onclick="abrirModalTrans('ultra')">+ Agregar transductor</button>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-outline btn-sm" onclick="exportarExcelInventario('ultra')">Exportar Excel</button>
+        <button class="btn btn-success" onclick="abrirModalTrans('ultra')">+ Agregar transductor</button>
+      </div>
     </div>
   </div>
   <div id="inv-ultra-container"></div>
@@ -734,7 +738,10 @@ tr:hover td{background:#f7fafc}
   <div class="page-header">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
       <div><h1>Transductores Volnewmer</h1><p>Punteras (0.25mm, 3mm, 4mm, 16mm) y disparos disponibles</p></div>
-      <button class="btn btn-success" onclick="abrirModalTrans('vol')">+ Agregar transductor</button>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-outline btn-sm" onclick="exportarExcelInventario('vol')">Exportar Excel</button>
+        <button class="btn btn-success" onclick="abrirModalTrans('vol')">+ Agregar transductor</button>
+      </div>
     </div>
   </div>
   <div id="inv-vol-container"></div>
@@ -745,7 +752,10 @@ tr:hover td{background:#f7fafc}
   <div class="page-header">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
       <div><h1>Soluciones Aquapure</h1><p>Trazabilidad de compras de insumos</p></div>
-      <button class="btn btn-success" onclick="abrirModalSolucion()">+ Registrar compra</button>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-outline btn-sm" onclick="exportarExcelInventario('aqua')">Exportar Excel</button>
+        <button class="btn btn-success" onclick="abrirModalSolucion()">+ Registrar compra</button>
+      </div>
     </div>
   </div>
   <div id="inv-aqua-container"></div>
@@ -2454,6 +2464,71 @@ function renderFinanciero(){
 }
 
 // ===================== EXPORT =====================
+function exportarExcelPacientes(){
+  const sesiones=getSesiones();
+  if(!sesiones.length){alert('No hay sesiones para exportar.');return;}
+  const wb=XLSX.utils.book_new();
+  // Agrupar por paciente
+  const map={};
+  sesiones.forEach(s=>{
+    if(!map[s.paciente])map[s.paciente]=[];
+    map[s.paciente].push(s);
+  });
+  const rows=[['Paciente','Fecha','Equipo','Zona','Médico','Cosmetóloga','Sesión','Precio bruto','Desc. %','Precio final','Referido','Notas']];
+  Object.keys(map).sort((a,b)=>a.localeCompare(b)).forEach(nombre=>{
+    const ss=map[nombre].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+    ss.forEach(s=>{
+      rows.push([
+        s.paciente,s.fecha,s.equipo,s.zona,s.medico,s.cosmetologa||'',
+        s.esPaquete?`${s.nsesion}/${s.totalSesiones}`:'Única',
+        s.precio,Math.round((s.descPct||0)*100)+'%',
+        s.precioFinal||s.precio,s.referido||'',s.notas||''
+      ]);
+    });
+    const total=ss.reduce((a,s)=>a+(s.precioFinal||s.precio),0);
+    rows.push(['→ Total '+nombre,'','','','','','',
+      ss.reduce((a,s)=>a+s.precio,0),'',total,'','']);
+    rows.push([]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // Resaltar filas de totales
+  XLSX.utils.book_append_sheet(wb,ws,'Historial por Paciente');
+  XLSX.writeFile(wb,'Historial_Pacientes_'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
+function exportarExcelInventario(equipo){
+  const wb=XLSX.utils.book_new();
+  const fecha=new Date().toISOString().split('T')[0];
+  if(equipo==='ultra'||equipo==='vol'){
+    const inv=getInventario(equipo);
+    if(!inv.length){alert('No hay transductores registrados.');return;}
+    const rows=[['ID','Tipo','Medida','Etiqueta','F. Compra','Estado','Disp. Totales','Disp. Usados','Disp. Restantes','% Vida usada','Costo/disparo']];
+    inv.forEach(t=>{
+      const tot=getTotalDisparos(equipo,t.medida);
+      const usado=t.disparosUsados||0;
+      const rest=Math.max(0,tot-usado);
+      let estado=t.retirado?'Retirado':rest<=0?'Agotado':rest<tot*0.15?'Stock bajo':'Activo';
+      const costoDisp=equipo==='vol'?Math.round(getCostoDisparo(equipo,t.medida)):700;
+      rows.push([t.id,t.tipo,t.medida,t.etiqueta||'',t.fechaCompra||'',estado,tot,usado,rest,Math.round((usado/tot)*100)+'%',costoDisp]);
+    });
+    const nombreHoja=equipo==='ultra'?'Transductores_Ultraformer':'Transductores_Volnewmer';
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),nombreHoja);
+    XLSX.writeFile(wb,nombreHoja+'_'+fecha+'.xlsx');
+  } else if(equipo==='aqua'){
+    const sols=getSoluciones();
+    if(!sols.length){alert('No hay compras de soluciones registradas.');return;}
+    const totales={};
+    sols.forEach(s=>{if(!totales[s.tipo])totales[s.tipo]=0;totales[s.tipo]+=s.cantidad;});
+    const rows=[['Fecha','Solución','Cantidad']];
+    [...sols].sort((a,b)=>b.fecha.localeCompare(a.fecha)).forEach(s=>rows.push([s.fecha,s.tipo,s.cantidad]));
+    rows.push([]);
+    rows.push(['RESUMEN','','']);
+    Object.entries(totales).forEach(([tipo,cant])=>rows.push(['',tipo,cant]));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'Soluciones_Aquapure');
+    XLSX.writeFile(wb,'Inventario_Aquapure_'+fecha+'.xlsx');
+  }
+}
+
 function exportarExcel(){
   const sesiones=getSesiones();
   if(!sesiones.length){alert('No hay sesiones para exportar.');return;}
