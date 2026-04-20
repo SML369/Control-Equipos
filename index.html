@@ -317,6 +317,109 @@ tr:hover td{background:#f7fafc}
   </div>
 </div>
 
+<!-- MODAL SELECTOR COSMETÓLOGA -->
+<div class="modal-overlay hidden" id="modal-selector-cosmeto">
+  <div class="modal" style="max-width:340px">
+    <h2>¿Quién eres?</h2>
+    <p>Selecciona tu nombre para continuar</p>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Cosmetóloga</label>
+      <select id="selector-cosmeto-nombre" style="width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none"></select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" style="width:100%" onclick="confirmarSelectorCosmeto()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA / EDITAR CITA AQUAPURE -->
+<div class="modal-overlay hidden" id="modal-cita-aqua">
+  <div class="modal" style="max-width:620px">
+    <h2 id="modal-cita-titulo">Nueva cita Aquapure</h2>
+    <p id="modal-cita-subtitulo">Agenda una cita con el equipo Aquapure</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="ca-fecha">
+      </div>
+      <div class="form-group">
+        <label>Hora</label>
+        <input type="time" id="ca-hora">
+      </div>
+      <div class="form-group">
+        <label>Paciente</label>
+        <input type="text" id="ca-paciente" placeholder="Nombre completo">
+      </div>
+      <div class="form-group">
+        <label>Documento</label>
+        <input type="text" id="ca-documento" placeholder="Cédula o pasaporte">
+      </div>
+      <div class="form-group">
+        <label>Celular</label>
+        <input type="text" id="ca-celular" placeholder="300 000 0000">
+      </div>
+      <div class="form-group">
+        <label>Doctor</label>
+        <select id="ca-doctor">
+          <option value="Carolina">Carolina</option>
+          <option value="Sneider">Sneider</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cosmetóloga</label>
+        <select id="ca-cosmetologa"></select>
+      </div>
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="ca-estado">
+          <option value="Pendiente">Pendiente</option>
+          <option value="Confirmada">Confirmada</option>
+          <option value="Realizada">Realizada</option>
+          <option value="Cancelada">Cancelada</option>
+        </select>
+      </div>
+      <div class="form-group form-full">
+        <label>Tipo de limpieza</label>
+        <select id="ca-tipo" onchange="onCaTipoChange()">
+          <option value="">Seleccionar limpieza...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Precio (COP)</label>
+        <input type="number" id="ca-precio" readonly style="background:#f7fafc;color:#718096">
+      </div>
+      <div class="form-group">
+        <label>Ganancia cosmetóloga (COP)</label>
+        <input type="number" id="ca-ganancia" readonly style="background:#f0fff4;color:#065f46;font-weight:700">
+      </div>
+      <div class="form-group form-full">
+        <label>Notas</label>
+        <textarea id="ca-notas" placeholder="Observaciones opcionales" style="min-height:44px"></textarea>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalCita()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarCitaAqua()">Guardar cita</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ELIMINAR CITA AQUAPURE -->
+<div class="modal-overlay hidden" id="modal-delete-cita">
+  <div class="modal">
+    <h2>Eliminar cita</h2>
+    <p>Ingresa el código de autorización para eliminar esta cita.</p>
+    <input type="password" id="del-cita-code" maxlength="6" placeholder="••••••"
+      style="width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:15px;text-align:center;letter-spacing:4px;margin-bottom:7px;outline:none"
+      onkeydown="if(event.key==='Enter')confirmarDeleteCita()">
+    <div style="font-size:11px;color:#e53e3e;min-height:14px;margin-bottom:4px" id="del-cita-err"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalDeleteCita()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarDeleteCita()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL GESTIONAR REFERIDOS -->
 <div class="modal-overlay hidden" id="modal-referidos">
   <div class="modal" style="max-width:400px">
@@ -371,6 +474,8 @@ tr:hover td{background:#f7fafc}
   <div class="nav-item" data-page="inv-ultra" onclick="goPage(this)">Transductores Ultraformer</div>
   <div class="nav-item" data-page="inv-vol" onclick="goPage(this)">Transductores Volnewmer</div>
   <div class="nav-item" data-page="inv-aqua" onclick="goPage(this)">Soluciones Aquapure</div>
+  <div class="nav-section">Agendas</div>
+  <div class="nav-item" data-page="agenda-aquapure" onclick="goPage(this)">Agenda Aquapure</div>
   <div class="nav-section">Sistema</div>
   <div class="nav-item" data-page="protocolos" onclick="goPage(this)">Protocolos</div>
   <div class="nav-item" data-page="config" onclick="goPage(this)">Configuración</div>
@@ -846,6 +951,17 @@ tr:hover td{background:#f7fafc}
     <div id="referidos-preview" style="margin-bottom:10px"></div>
     <button class="btn btn-outline btn-sm" onclick="abrirModalReferidos()">Editar lista de referidos</button>
   </div>
+  <div class="card" id="card-cosmetologas">
+    <div class="card-title">Cosmetólogas</div>
+    <div id="lista-cosmetologas-config" style="margin-bottom:10px"></div>
+    <div style="display:flex;gap:7px;align-items:flex-end">
+      <div class="form-group" style="flex:1;margin:0">
+        <label>Nueva cosmetóloga</label>
+        <input type="text" id="nueva-cosmeto-nombre" placeholder="Ej: Valeria Rios" onkeydown="if(event.key==='Enter')agregarCosmetologa()">
+      </div>
+      <button class="btn btn-success btn-sm" onclick="agregarCosmetologa()">+ Agregar</button>
+    </div>
+  </div>
   <div class="card">
     <div class="card-title">Gestión de datos</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap">
@@ -853,6 +969,58 @@ tr:hover td{background:#f7fafc}
       <button class="btn btn-danger btn-sm" onclick="borrarTodo()">Borrar todos los datos</button>
     </div>
   </div>
+</div>
+
+<!-- AGENDA AQUAPURE -->
+<div class="page" id="page-agenda-aquapure">
+  <div class="page-header">
+    <h1>Agenda Aquapure</h1>
+    <p>Citas programadas con el equipo Aquapure</p>
+  </div>
+  <div class="card" style="padding:12px 16px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="filtro-cosmeto" onchange="renderAgendaAqua()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
+        <option value="">Todas las cosmetólogas</option>
+      </select>
+      <select id="filtro-estado-cita" onchange="renderAgendaAqua()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
+        <option value="">Todos los estados</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="Confirmada">Confirmada</option>
+        <option value="Realizada">Realizada</option>
+        <option value="Cancelada">Cancelada</option>
+      </select>
+      <input type="month" id="filtro-mes-cita" onchange="renderAgendaAqua()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
+      <div style="flex:1"></div>
+      <button class="btn btn-primary btn-sm" onclick="mostrarFormCita()">+ Nueva cita</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>FECHA CITA</th>
+            <th>HORA</th>
+            <th>PACIENTE</th>
+            <th>DOCUMENTO</th>
+            <th>CELULAR</th>
+            <th>DOCTOR</th>
+            <th>COSMETÓLOGA</th>
+            <th>TIPO LIMPIEZA</th>
+            <th>PRECIO</th>
+            <th>GANANCIA</th>
+            <th>ESTADO</th>
+            <th>NOTAS</th>
+            <th>ACCIONES</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-agenda-aqua">
+          <tr><td colspan="13" class="empty">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div id="resumen-agenda-aqua" class="stats-grid" style="margin-top:12px"></div>
 </div>
 
 </div><!-- end main -->
@@ -863,7 +1031,8 @@ tr:hover td{background:#f7fafc}
 const EMAIL_TO_USER = {
   'santiagomejia930314@gmail.com': 'Santiago',
   'carolinamejiadermatologia@gmail.com': 'Carolina',
-  'sneidertorres07@gmail.com': 'Sneider'
+  'sneidertorres07@gmail.com': 'Sneider',
+  'dermatologia1228@hotmail.com': 'Cosmetologa'
 };
 let _authToken = null;
 const DELETE_CODE = '5027';
@@ -965,17 +1134,45 @@ let zonasSeleccionadas = []; // [{nombre, precio, disparosRef}]
 let pendingDeleteId = null;
 let modalTransEquipo = 'ultra';
 let currentUser = null;
+let currentCosmetologa = null;
+let esCosmetologa = false;
+let listaCosmetologas = ['Diana Lopez','Veronica Borja','Cristina Londoño'];
+let _cacheAgendaAqua = [];
+let _pendingDeleteCitaId = null;
+let _editCitaId = null;
 
 function cop(v){return '$'+Math.round(v).toLocaleString('es-CO');}
 function pct(v){return Math.round(v*100)+'%';}
 
 // ===================== LOGIN =====================
-function _onLoginSuccess(nombre){
+async function _onLoginSuccess(nombre){
   currentUser = nombre;
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('main-app').style.display='flex';
+
+  if(nombre === 'Cosmetologa'){
+    esCosmetologa = true;
+    aplicarRestriccionSidebar();
+    setFechaHoy();
+    await cargarDatos();
+    if(currentCosmetologa){
+      // Ya tiene nombre guardado (auto-login), ir directo a la agenda
+      document.getElementById('sidebar-user-label').textContent = currentCosmetologa;
+      document.getElementById('topbar-user-label').textContent = currentCosmetologa;
+      poblarFiltroCosmeto();
+      const navItem = document.querySelector('[data-page="agenda-aquapure"]');
+      if(navItem) goPage(navItem);
+    } else {
+      mostrarSelectorCosmetologa();
+    }
+    return;
+  }
+
+  esCosmetologa = false;
+  currentCosmetologa = null;
   document.getElementById('sidebar-user-label').textContent='Usuario: '+currentUser;
   document.getElementById('topbar-user-label').textContent=currentUser;
+  aplicarRestriccionSidebar();
   cargarConfig(); setFechaHoy(); poblarReferidos(); cargarDatos();
 }
 
@@ -1015,7 +1212,11 @@ async function cerrarSesion(){
   sessionStorage.removeItem('derma-token');
   sessionStorage.removeItem('derma-refresh');
   sessionStorage.removeItem('derma-email');
+  sessionStorage.removeItem('derma-cosmeto');
   currentUser = null;
+  currentCosmetologa = null;
+  esCosmetologa = false;
+  aplicarRestriccionSidebar();
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('main-app').style.display='none';
   document.getElementById('login-email').value='';
@@ -1045,6 +1246,13 @@ async function cerrarSesion(){
     });
     if(res.ok){
       _authToken = token;
+      if(nombre === 'Cosmetologa'){
+        const cosmetoNombre = sessionStorage.getItem('derma-cosmeto');
+        if(cosmetoNombre){
+          currentCosmetologa = cosmetoNombre;
+          esCosmetologa = true;
+        }
+      }
       _onLoginSuccess(nombre);
     } else {
       sessionStorage.removeItem('derma-token');
@@ -1147,20 +1355,23 @@ async function sbDelete(tabla, col, val){
 async function cargarDatos(){
   mostrarCargando(true);
   try {
-    const [ses, ultra, vol, sols, cfgRows, protos, cots] = await Promise.all([
+    const [ses, ultra, vol, sols, cfgRows, protos, cots, agendaAqua] = await Promise.all([
       sbGet('sesiones'), sbGet('inventario_ultra'), sbGet('inventario_vol'),
       sbGet('soluciones'), sbGet('configuracion'), sbGet('protocolos'),
-      sbGet('cotizaciones')
+      sbGet('cotizaciones'), sbGet('agenda_aquapure')
     ]);
     _cache.sesiones = ses.map(r=>r.data);
     _cache.cotizaciones = cots.map(r=>({...r}));
     _cache.ultra = ultra.map(r=>r.data);
     _cache.vol = vol.map(r=>r.data);
     _cache.soluciones = sols.map(r=>r.data);
+    _cacheAgendaAqua = agendaAqua.map(r=>r.data);
     const cfgRow = cfgRows.find(r=>r.clave==='cfg');
     const refRow = cfgRows.find(r=>r.clave==='referidos');
+    const cosmetoRow = cfgRows.find(r=>r.clave==='cosmetologas');
     _cache.cfg = cfgRow ? cfgRow.valor : null;
     _cache.referidos = refRow ? refRow.valor : null;
+    if(cosmetoRow && Array.isArray(cosmetoRow.valor)) listaCosmetologas = cosmetoRow.valor;
     // Cargar protocolos — si Supabase está vacío, sincronizar el respaldo
     _protosDB = protos.length ? protos : _PROTO_FALLBACK;
     _cargarProtocolos(_protosDB);
@@ -1525,7 +1736,8 @@ function goPage(el){
   if(p==='protocolos') renderProtocolos();
   if(p==='cotizaciones') renderCotizaciones();
   if(p==='tarifario') renderTarifario();
-  if(p==='config'){renderReferidosPreview();}
+  if(p==='agenda-aquapure'){ poblarFiltroCosmeto(); renderAgendaAqua(); }
+  if(p==='config'){ renderReferidosPreview(); renderListaCosmetologasConfig(); }
 }
 
 // ===================== FORM =====================
@@ -3074,6 +3286,317 @@ function generarPDFCotizacion(id){
 }
 cargarConfig(); setFechaHoy(); poblarReferidos();
 cargarDatos();
+
+// ===================== AGENDA AQUAPURE =====================
+
+function aplicarRestriccionSidebar(){
+  const sidebar = document.querySelector('.sidebar');
+  if(!sidebar) return;
+  if(esCosmetologa){
+    sidebar.querySelectorAll('.nav-section').forEach(el=>el.style.display='none');
+    sidebar.querySelectorAll('.nav-item').forEach(el=>{
+      if(el.dataset.page && el.dataset.page!=='agenda-aquapure') el.style.display='none';
+    });
+  } else {
+    sidebar.querySelectorAll('.nav-section').forEach(el=>el.style.display='');
+    sidebar.querySelectorAll('.nav-item').forEach(el=>el.style.display='');
+  }
+}
+
+function mostrarSelectorCosmetologa(){
+  const sel = document.getElementById('selector-cosmeto-nombre');
+  sel.innerHTML='';
+  listaCosmetologas.forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c; o.textContent=c;
+    // Pre-select stored name if available
+    if(c===currentCosmetologa) o.selected=true;
+    sel.appendChild(o);
+  });
+  document.getElementById('modal-selector-cosmeto').classList.remove('hidden');
+}
+
+function confirmarSelectorCosmeto(){
+  const nombre = document.getElementById('selector-cosmeto-nombre').value;
+  if(!nombre) return;
+  document.getElementById('modal-selector-cosmeto').classList.add('hidden');
+  currentCosmetologa = nombre;
+  esCosmetologa = true;
+  sessionStorage.setItem('derma-cosmeto', nombre);
+  document.getElementById('sidebar-user-label').textContent = nombre;
+  document.getElementById('topbar-user-label').textContent = nombre;
+  aplicarRestriccionSidebar();
+  poblarFiltroCosmeto();
+  const navItem = document.querySelector('[data-page="agenda-aquapure"]');
+  if(navItem) goPage(navItem);
+}
+
+function poblarFiltroCosmeto(){
+  const sel = document.getElementById('filtro-cosmeto');
+  if(!sel) return;
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">Todas las cosmetólogas</option>';
+  listaCosmetologas.forEach(c=>{
+    const o=document.createElement('option');
+    o.value=c; o.textContent=c;
+    if(c===actual) o.selected=true;
+    sel.appendChild(o);
+  });
+  // Si es cosmetóloga, pre-filtrar por su nombre
+  if(esCosmetologa && currentCosmetologa) sel.value = currentCosmetologa;
+
+  const selModal = document.getElementById('ca-cosmetologa');
+  if(selModal){
+    const actualModal = selModal.value;
+    selModal.innerHTML='';
+    listaCosmetologas.forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c; o.textContent=c;
+      if(c===actualModal) o.selected=true;
+      selModal.appendChild(o);
+    });
+  }
+}
+
+function poblarProtocolosAqua(){
+  const sel = document.getElementById('ca-tipo');
+  if(!sel) return;
+  sel.innerHTML='<option value="">Seleccionar limpieza...</option>';
+  PROTOCOLOS_AQUAPURE.forEach(p=>{
+    const o=document.createElement('option');
+    o.value=p.nombre;
+    o.dataset.precio=p.precio;
+    o.dataset.ganancia=p.pagoCosmeto;
+    o.textContent=p.nombre+' — '+cop(p.precio);
+    sel.appendChild(o);
+  });
+}
+
+function onCaTipoChange(){
+  const sel = document.getElementById('ca-tipo');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('ca-precio').value = opt.dataset.precio||'';
+  document.getElementById('ca-ganancia').value = opt.dataset.ganancia||'';
+}
+
+function renderAgendaAqua(){
+  const filtroCosmeto = document.getElementById('filtro-cosmeto')?.value||'';
+  const filtroEstado  = document.getElementById('filtro-estado-cita')?.value||'';
+  const filtroMes     = document.getElementById('filtro-mes-cita')?.value||'';
+
+  let citas = [..._cacheAgendaAqua];
+  if(filtroCosmeto) citas = citas.filter(c=>c.cosmetologa===filtroCosmeto);
+  if(filtroEstado)  citas = citas.filter(c=>c.estado===filtroEstado);
+  if(filtroMes)     citas = citas.filter(c=>c.fecha && c.fecha.startsWith(filtroMes));
+
+  citas.sort((a,b)=>{
+    const da=(a.fecha||'')+(a.hora||'');
+    const db=(b.fecha||'')+(b.hora||'');
+    return da<db?-1:da>db?1:0;
+  });
+
+  const tbody = document.getElementById('tbody-agenda-aqua');
+  if(!tbody) return;
+
+  if(!citas.length){
+    tbody.innerHTML='<tr><td colspan="13" class="empty">No hay citas registradas</td></tr>';
+    document.getElementById('resumen-agenda-aqua').innerHTML='';
+    return;
+  }
+
+  const estadoStyle = {
+    'Pendiente':'background:#fef3c7;color:#92400e',
+    'Confirmada':'background:#dbeafe;color:#1e40af',
+    'Realizada':'background:#d1fae5;color:#065f46',
+    'Cancelada':'background:#fee2e2;color:#991b1b'
+  };
+
+  const canEdit = c => !esCosmetologa || c.cosmetologa===currentCosmetologa;
+
+  tbody.innerHTML = citas.map(c=>`
+    <tr>
+      <td style="white-space:nowrap">${_fmtFecha(c.fecha)}</td>
+      <td style="white-space:nowrap">${c.hora||''}</td>
+      <td>${c.paciente||''}</td>
+      <td>${c.documento||''}</td>
+      <td>${c.celular||''}</td>
+      <td><span class="badge badge-${c.doctor==='Carolina'?'carolina':'sneider'}">${c.doctor||''}</span></td>
+      <td>${c.cosmetologa||''}</td>
+      <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.tipo_limpieza||''}">${c.tipo_limpieza||''}</td>
+      <td style="white-space:nowrap">${cop(c.precio||0)}</td>
+      <td style="white-space:nowrap;color:#065f46;font-weight:700">${cop(c.ganancia_cosmeto||0)}</td>
+      <td><span class="badge" style="${estadoStyle[c.estado]||''}">${c.estado||''}</span></td>
+      <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.notas||''}">${c.notas||''}</td>
+      <td>
+        ${canEdit(c)?`<div style="display:flex;gap:4px">
+          <button class="btn btn-warning btn-sm" onclick="editarCita('${c.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="abrirDeleteCita('${c.id}')">×</button>
+        </div>`:''}
+      </td>
+    </tr>`).join('');
+
+  const realizadas = citas.filter(c=>c.estado==='Realizada').length;
+  const pendientes = citas.filter(c=>c.estado==='Pendiente'||c.estado==='Confirmada').length;
+  const totalGanancia = citas.filter(c=>c.estado!=='Cancelada').reduce((s,c)=>s+(c.ganancia_cosmeto||0),0);
+  const labelCosmeto = filtroCosmeto ? ' — '+filtroCosmeto : '';
+
+  document.getElementById('resumen-agenda-aqua').innerHTML=`
+    <div class="stat-card"><div class="number">${citas.length}</div><div class="label">Total citas</div></div>
+    <div class="stat-card"><div class="number" style="color:#065f46">${realizadas}</div><div class="label">Realizadas</div></div>
+    <div class="stat-card"><div class="number" style="color:#1e40af">${pendientes}</div><div class="label">Pendientes / Confirmadas</div></div>
+    <div class="stat-card"><div class="number" style="color:#065f46;font-size:14px">${cop(totalGanancia)}</div><div class="label">Ganancia cosmetóloga${labelCosmeto}</div></div>`;
+}
+
+function _fmtFecha(fecha){
+  if(!fecha) return '';
+  const [y,m,d]=fecha.split('-');
+  const meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return `${parseInt(d)} ${meses[parseInt(m)-1]} ${y}`;
+}
+
+function mostrarFormCita(cita=null){
+  _editCitaId = cita ? cita.id : null;
+  document.getElementById('modal-cita-titulo').textContent = cita?'Editar cita Aquapure':'Nueva cita Aquapure';
+  document.getElementById('modal-cita-subtitulo').textContent = cita?'Modifica los datos de la cita':'Agenda una cita con el equipo Aquapure';
+
+  poblarFiltroCosmeto();
+  poblarProtocolosAqua();
+
+  if(cita){
+    document.getElementById('ca-fecha').value=cita.fecha||'';
+    document.getElementById('ca-hora').value=cita.hora||'';
+    document.getElementById('ca-paciente').value=cita.paciente||'';
+    document.getElementById('ca-documento').value=cita.documento||'';
+    document.getElementById('ca-celular').value=cita.celular||'';
+    document.getElementById('ca-doctor').value=cita.doctor||'Carolina';
+    document.getElementById('ca-cosmetologa').value=cita.cosmetologa||'';
+    document.getElementById('ca-tipo').value=cita.tipo_limpieza||'';
+    document.getElementById('ca-precio').value=cita.precio||'';
+    document.getElementById('ca-ganancia').value=cita.ganancia_cosmeto||'';
+    document.getElementById('ca-estado').value=cita.estado||'Pendiente';
+    document.getElementById('ca-notas').value=cita.notas||'';
+  } else {
+    document.getElementById('ca-fecha').value=new Date().toISOString().split('T')[0];
+    document.getElementById('ca-hora').value='';
+    document.getElementById('ca-paciente').value='';
+    document.getElementById('ca-documento').value='';
+    document.getElementById('ca-celular').value='';
+    document.getElementById('ca-doctor').value='Carolina';
+    document.getElementById('ca-cosmetologa').value=esCosmetologa?currentCosmetologa:(listaCosmetologas[0]||'');
+    document.getElementById('ca-tipo').value='';
+    document.getElementById('ca-precio').value='';
+    document.getElementById('ca-ganancia').value='';
+    document.getElementById('ca-estado').value='Pendiente';
+    document.getElementById('ca-notas').value='';
+  }
+
+  const selCosmeto = document.getElementById('ca-cosmetologa');
+  if(esCosmetologa){
+    selCosmeto.value=currentCosmetologa;
+    selCosmeto.disabled=true;
+  } else {
+    selCosmeto.disabled=false;
+  }
+
+  document.getElementById('modal-cita-aqua').classList.remove('hidden');
+}
+
+function cerrarModalCita(){
+  document.getElementById('modal-cita-aqua').classList.add('hidden');
+  _editCitaId=null;
+}
+
+async function guardarCitaAqua(){
+  const fecha    = document.getElementById('ca-fecha').value;
+  const paciente = document.getElementById('ca-paciente').value.trim();
+  if(!fecha||!paciente){ alert('Fecha y nombre del paciente son obligatorios.'); return; }
+
+  const id = _editCitaId || Date.now().toString();
+  const data = {
+    id,
+    fecha,
+    hora:          document.getElementById('ca-hora').value,
+    paciente,
+    documento:     document.getElementById('ca-documento').value.trim(),
+    celular:       document.getElementById('ca-celular').value.trim(),
+    doctor:        document.getElementById('ca-doctor').value,
+    cosmetologa:   document.getElementById('ca-cosmetologa').value,
+    tipo_limpieza: document.getElementById('ca-tipo').value,
+    precio:        parseFloat(document.getElementById('ca-precio').value)||0,
+    ganancia_cosmeto: parseFloat(document.getElementById('ca-ganancia').value)||0,
+    estado:        document.getElementById('ca-estado').value,
+    notas:         document.getElementById('ca-notas').value.trim(),
+    registrado_por: currentCosmetologa||currentUser,
+    fecha_registro: new Date().toISOString().split('T')[0]
+  };
+
+  await sbUpsert('agenda_aquapure', {id, data});
+
+  const idx = _cacheAgendaAqua.findIndex(c=>c.id===id);
+  if(idx>=0) _cacheAgendaAqua[idx]=data;
+  else _cacheAgendaAqua.push(data);
+
+  cerrarModalCita();
+  renderAgendaAqua();
+}
+
+function editarCita(id){
+  const cita = _cacheAgendaAqua.find(c=>c.id===id);
+  if(cita) mostrarFormCita(cita);
+}
+
+function abrirDeleteCita(id){
+  _pendingDeleteCitaId=id;
+  document.getElementById('del-cita-code').value='';
+  document.getElementById('del-cita-err').textContent='';
+  document.getElementById('modal-delete-cita').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('del-cita-code').focus(),100);
+}
+
+function cerrarModalDeleteCita(){
+  document.getElementById('modal-delete-cita').classList.add('hidden');
+  _pendingDeleteCitaId=null;
+}
+
+async function confirmarDeleteCita(){
+  const code=document.getElementById('del-cita-code').value;
+  if(code!==DELETE_CODE){ document.getElementById('del-cita-err').textContent='Código incorrecto.'; return; }
+  await sbDelete('agenda_aquapure','id',_pendingDeleteCitaId);
+  _cacheAgendaAqua=_cacheAgendaAqua.filter(c=>c.id!==_pendingDeleteCitaId);
+  cerrarModalDeleteCita();
+  renderAgendaAqua();
+}
+
+// ===================== COSMETÓLOGAS EN CONFIGURACIÓN =====================
+
+function renderListaCosmetologasConfig(){
+  const el=document.getElementById('lista-cosmetologas-config');
+  if(!el) return;
+  el.innerHTML=listaCosmetologas.map((c,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:6px 8px;background:#f7fafc;border-radius:6px">
+      <span style="flex:1;font-size:12px;font-weight:600">${c}</span>
+      <button class="btn btn-danger btn-sm" onclick="eliminarCosmetologa(${i})">×</button>
+    </div>`).join('');
+}
+
+function agregarCosmetologa(){
+  const nombre=document.getElementById('nueva-cosmeto-nombre').value.trim();
+  if(!nombre) return;
+  listaCosmetologas.push(nombre);
+  guardarCosmetologas();
+  document.getElementById('nueva-cosmeto-nombre').value='';
+  renderListaCosmetologasConfig();
+}
+
+function eliminarCosmetologa(i){
+  listaCosmetologas.splice(i,1);
+  guardarCosmetologas();
+  renderListaCosmetologasConfig();
+}
+
+async function guardarCosmetologas(){
+  await sbUpsert('configuracion',{clave:'cosmetologas',valor:listaCosmetologas});
+}
 </script>
 </body>
 </html>
