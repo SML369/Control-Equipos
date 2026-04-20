@@ -991,6 +991,7 @@ tr:hover td{background:#f7fafc}
       </select>
       <input type="month" id="filtro-mes-cita" onchange="renderAgendaAqua()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
       <div style="flex:1"></div>
+      <button class="btn btn-outline btn-sm" onclick="exportarExcelAgendaAqua()">Exportar Excel</button>
       <button class="btn btn-primary btn-sm" onclick="mostrarFormCita()">+ Nueva cita</button>
     </div>
   </div>
@@ -3596,6 +3597,42 @@ function eliminarCosmetologa(i){
 
 async function guardarCosmetologas(){
   await sbUpsert('configuracion',{clave:'cosmetologas',valor:listaCosmetologas});
+}
+
+function exportarExcelAgendaAqua(){
+  const filtroCosmeto = document.getElementById('filtro-cosmeto')?.value||'';
+  const filtroEstado  = document.getElementById('filtro-estado-cita')?.value||'';
+  const filtroMes     = document.getElementById('filtro-mes-cita')?.value||'';
+
+  let citas = [..._cacheAgendaAqua];
+  if(filtroCosmeto) citas = citas.filter(c=>c.cosmetologa===filtroCosmeto);
+  if(filtroEstado)  citas = citas.filter(c=>c.estado===filtroEstado);
+  if(filtroMes)     citas = citas.filter(c=>c.fecha&&c.fecha.startsWith(filtroMes));
+
+  if(!citas.length){ alert('No hay citas para exportar con los filtros actuales.'); return; }
+
+  citas.sort((a,b)=>((a.fecha||'')+(a.hora||''))<((b.fecha||'')+(b.hora||''))?-1:1);
+
+  const rows=[['Fecha','Hora','Paciente','Documento','Celular','Doctor','Cosmetóloga','Tipo limpieza','Precio','Ganancia cosmetóloga','Estado','Notas','Registrado por']];
+  citas.forEach(c=>rows.push([
+    c.fecha||'', c.hora||'', c.paciente||'', c.documento||'', c.celular||'',
+    c.doctor||'', c.cosmetologa||'', c.tipo_limpieza||'',
+    c.precio||0, c.ganancia_cosmeto||0, c.estado||'', c.notas||'', c.registrado_por||''
+  ]));
+
+  // Fila de totales
+  const totalGanancia = citas.filter(c=>c.estado!=='Cancelada').reduce((s,c)=>s+(c.ganancia_cosmeto||0),0);
+  rows.push([]);
+  rows.push(['TOTAL CITAS: '+citas.length,'','','','','','','',
+    citas.filter(c=>c.estado!=='Cancelada').reduce((s,c)=>s+(c.precio||0),0),
+    totalGanancia,'','','']);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Agenda Aquapure');
+  const sufijo = filtroCosmeto ? '_'+filtroCosmeto.split(' ')[0] : '';
+  const fecha = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, 'Agenda_Aquapure'+sufijo+'_'+fecha+'.xlsx');
 }
 </script>
 </body>
