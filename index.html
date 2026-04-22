@@ -501,6 +501,10 @@ tr:hover td{background:#f7fafc}
         <input type="date" id="f-fecha">
       </div>
       <div class="form-group">
+        <label>Hora</label>
+        <input type="time" id="f-hora">
+      </div>
+      <div class="form-group">
         <label>Equipo</label>
         <select id="f-equipo" onchange="onEquipoChange()">
           <option value="">Seleccionar equipo...</option>
@@ -585,8 +589,9 @@ tr:hover td{background:#f7fafc}
         <label>Cuenta donde fue pagado</label>
         <select id="f-cuenta">
           <option value="">Seleccionar...</option>
-          <option value="Carolina">Carolina</option>
-          <option value="Sneider">Sneider</option>
+          <option value="Carolina">Cuenta Carolina</option>
+          <option value="Sneider">Cuenta Sneider</option>
+          <option value="Efectivo">Efectivo</option>
         </select>
       </div>
       <!-- Cosmetóloga (Aquapure) -->
@@ -678,7 +683,7 @@ tr:hover td{background:#f7fafc}
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Fecha</th><th>Paciente</th><th>Equipo</th><th>Zona</th><th>Precio</th><th>Desc.</th><th>Médico</th><th>Sesión</th><th>Referido</th><th>Registró</th><th>Cuenta</th><th>Acc.</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Equipo</th><th>Zona</th><th>Precio</th><th>Desc.</th><th>Médico</th><th>Sesión</th><th>Referido</th><th>Registró</th><th>Cuenta</th><th>Acc.</th></tr></thead>
         <tbody id="tabla-sesiones"></tbody>
       </table>
     </div>
@@ -943,7 +948,6 @@ tr:hover td{background:#f7fafc}
     <div class="pct-grid">
       <div class="pct-item"><label>Cobro uso cruzado al dueño (%)</label><input type="number" id="cfg-cruzado" value="30" min="0" max="100" onchange="guardarConfig()"> %</div>
       <div class="pct-item"><label>Mantenimiento — todos los equipos (%)</label><input type="number" id="cfg-mant" value="5" min="0" max="100" onchange="guardarConfig()"> %</div>
-      <div class="pct-item"><label>Admin / Santiago (%)</label><input type="number" id="cfg-admin" value="5" min="0" max="100" onchange="guardarConfig()"> %</div>
     </div>
   </div>
   <div class="card">
@@ -1112,11 +1116,11 @@ const _PROTO_FALLBACK = [
   {id:'vf_full_face_sin_papada',equipo:'volformer',nombre:'Full face sin papada',precio:4962583,precio_doc:null,disparos_ref:540,disparos_vol:{'0':200,'3':300,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
   {id:'vf_full_face_con_papada',equipo:'volformer',nombre:'Full face con papada',precio:7046833,precio_doc:null,disparos_ref:940,disparos_vol:{'0':200,'3':400,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
   // AQUAPURE
-  {id:'a_manual',equipo:'aquapure',nombre:'Limpieza manual',precio:250000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:15000,pago_cosmeto:62500,activo:true},
-  {id:'a_aquapure',equipo:'aquapure',nombre:'Limpieza con Aquapure',precio:285000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:60000,pago_cosmeto:56250,activo:true},
-  {id:'a_masaje',equipo:'aquapure',nombre:'Limpieza Aquapure + masaje',precio:325000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:60000,pago_cosmeto:65000,activo:true},
-  {id:'a_pecho',equipo:'aquapure',nombre:'Limpieza pecho y espalda (microdermoabrasión)',precio:300000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:20000,pago_cosmeto:70000,activo:true},
-  {id:'a_sueroterapia',equipo:'aquapure',nombre:'Limpieza Aquapure + sueroterapia (vitamina C)',precio:465000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:120000,pago_cosmeto:85000,activo:true},
+  {id:'a_manual',equipo:'aquapure',nombre:'Limpieza manual',precio:250000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:62500,activo:true},
+  {id:'a_aquapure',equipo:'aquapure',nombre:'Limpieza con Aquapure',precio:285000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:60000,activo:true},
+  {id:'a_masaje',equipo:'aquapure',nombre:'Limpieza Aquapure + masaje',precio:325000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:76000,activo:true},
+  {id:'a_pecho',equipo:'aquapure',nombre:'Limpieza pecho y espalda (microdermoabrasión)',precio:300000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:70000,activo:true},
+  {id:'a_sueroterapia',equipo:'aquapure',nombre:'Limpieza Aquapure + sueroterapia (vitamina C)',precio:465000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:85000,activo:true},
 ];
 
 // Protocolos cargados desde Supabase (vacíos hasta que carga)
@@ -1376,8 +1380,9 @@ async function cargarDatos(){
     // Cargar protocolos — si Supabase está vacío, sincronizar el respaldo
     _protosDB = protos.length ? protos : _PROTO_FALLBACK;
     _cargarProtocolos(_protosDB);
-    if(!protos.length){
-      // Poblar Supabase con los protocolos de respaldo en background
+    // Sincronizar si Supabase está vacío O si algún protocolo Aquapure tiene consumibles desactualizados
+    const aquaDesact = protos.some(p=>p.equipo==='aquapure' && p.costo_consumibles !== 125000);
+    if(!protos.length || aquaDesact){
       Promise.all(_PROTO_FALLBACK.map(p=>sbUpsert('protocolos',p))).catch(e=>console.warn('No se pudieron sincronizar protocolos:',e));
     }
     aplicarConfig();
@@ -2106,7 +2111,7 @@ function calcular(){
   const refNombre=refSel.value;
   const refOpt=refSel.options[refSel.selectedIndex];
   const refTipo=refOpt?refOpt.dataset.tipo:'';
-  const refPct=(refTipo==='cosmetologa')?(eq==='aquapure'?0.05:0.03):0;
+  const refPct=(refTipo==='cosmetologa')?0.03:0;
   const comisionRef=utilBruta*refPct;
   const utilDespRef=utilBruta-comisionRef;
 
@@ -2121,23 +2126,29 @@ function calcular(){
   if(costoUltra>0) items.push({lbl:`Disparos Ultraformer (${ultraTotal}×$700)`,val:cop(costoUltra),cls:'warning'});
   if(costoVol>0) items.push({lbl:`Disparos Volnewmer`,val:cop(costoVol),cls:'warning'});
   items.push({lbl:'Utilidad bruta',val:cop(utilBruta),cls:''});
-  if(comisionRef>0) items.push({lbl:`Comisión ${refNombre} (${Math.round(refPct*100)}%)`,val:cop(comisionRef),cls:'purple'});
+  if(comisionRef>0 && eq!=='aquapure') items.push({lbl:`Comisión ${refNombre} (${Math.round(refPct*100)}%)`,val:cop(comisionRef),cls:'purple'});
 
   if(eq==='aquapure'){
     const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===(zonasSeleccionadas[0]?.nombre||''));
     const costoConsumibles=proto?proto.costoConsumibles:0;
     const pagoCosmeto=proto?proto.pagoCosmeto:0;
-    const utilDisponible=utilDespRef-costoConsumibles-pagoCosmeto;
-    const mant=utilDisponible*cfg.mant;
-    const admin=utilDisponible*cfg.admin;
+    const utilidades=precioFinal-costoConsumibles-pagoCosmeto;
     items.push({lbl:'Consumibles Aquapure',val:cop(costoConsumibles),cls:'warning'});
     items.push({lbl:'Pago cosmetóloga',val:cop(pagoCosmeto),cls:'warning'});
-    items.push({lbl:`Mantenimiento Aquapure (${pct(cfg.mant)})`,val:cop(mant),cls:'warning'});
-    items.push({lbl:`Admin Santiago (${pct(cfg.admin)})`,val:cop(admin),cls:'warning'});
-    const utilSocios=utilDisponible-mant-admin;
-    const cadaSocio=utilSocios/2;
-    items.push({lbl:'Carolina (50%)',val:cop(cadaSocio),cls:'success'});
-    items.push({lbl:'Sneider (50%)',val:cop(cadaSocio),cls:'success'});
+    items.push({lbl:'Utilidades',val:cop(utilidades),cls:''});
+    const cosmetologasRef=['Diana','Vero','Cristina'];
+    if(cosmetologasRef.includes(refNombre)){
+      const com=Math.round(utilidades*0.05);
+      const docAsignado=refNombre==='Diana'?'Carolina':'Sneider';
+      items.push({lbl:`Comisión ${refNombre} (5%)`,val:cop(com),cls:'purple'});
+      items.push({lbl:`Ganancia ${docAsignado}`,val:cop(utilidades-com),cls:'success'});
+    } else if(refNombre==='Carolina'){
+      items.push({lbl:'Ganancia Carolina',val:cop(utilidades),cls:'success'});
+    } else if(refNombre==='Sneider'){
+      items.push({lbl:'Ganancia Sneider',val:cop(utilidades),cls:'success'});
+    } else {
+      items.push({lbl:`Ganancia ${med}`,val:cop(utilidades),cls:'success'});
+    }
   } else if(eq==='ultraformer'){
     _calcDistribucionEquipo(items,'ultraformer',med,utilDespRef,cfg,comisionRef>0);
   } else if(eq==='volnewmer'){
@@ -2177,6 +2188,7 @@ function _calcDistribucionEquipo(items,equipo,med,util,cfg,yaDescontadoRef){
 async function guardarSesion(){
   const pac=document.getElementById('f-paciente').value.trim();
   const fecha=document.getElementById('f-fecha').value;
+  const hora=document.getElementById('f-hora').value;
   const eq=document.getElementById('f-equipo').value;
   const med=document.getElementById('f-medico').value;
   const zona=zonasSeleccionadas[0]?.nombre||'';
@@ -2248,8 +2260,8 @@ async function guardarSesion(){
   const descPctFinal=precioInput>0?(precioInput-precioFinal)/precioInput:descPct;
   const utilBruta=precioFinal-costoTotal;
   const cfg=getCfg();
-  const refPct=(refTipo==='cosmetologa')?(eq==='aquapure'?0.05:0.03):0;
-  const comisionRef=utilBruta*refPct;
+  const refPct=(refTipo==='cosmetologa')?0.03:0;
+  const comisionRef=eq==='aquapure'?0:utilBruta*refPct;
   const utilDespRef=utilBruta-comisionRef;
 
   // Calcular desglose
@@ -2258,11 +2270,22 @@ async function guardarSesion(){
     const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===(zonasSeleccionadas[0]?.nombre||zona));
     const costoConsumibles=proto?proto.costoConsumibles:0;
     const pagoCosmeto=proto?proto.pagoCosmeto:0;
-    const utilDisponible=utilDespRef-costoConsumibles-pagoCosmeto;
-    const mant=utilDisponible*cfg.mant;
-    const admin=utilDisponible*cfg.admin;
-    const utilSocios=utilDisponible-mant-admin;
-    desglose={costoConsumibles,pagoCosmeto_limpieza:pagoCosmeto,mantenimiento:mant,admin,comisionRef,carolina:utilSocios/2,sneider:utilSocios/2};
+    const utilidades=precioFinal-costoConsumibles-pagoCosmeto;
+    const cosmetologasRef=['Diana','Vero','Cristina'];
+    let comRef=0, carolina=0, sneider=0;
+    if(cosmetologasRef.includes(refNombre)){
+      comRef=Math.round(utilidades*0.05);
+      if(refNombre==='Diana') carolina=utilidades-comRef;
+      else sneider=utilidades-comRef;
+    } else if(refNombre==='Carolina'){
+      carolina=utilidades;
+    } else if(refNombre==='Sneider'){
+      sneider=utilidades;
+    } else {
+      if(med==='Carolina') carolina=utilidades;
+      else sneider=utilidades;
+    }
+    desglose={costoConsumibles,pagoCosmeto_limpieza:pagoCosmeto,utilidades,comisionRef:comRef,carolina,sneider};
   } else if(eq==='ultraformer'){
     desglose=_desgloseEquipo('ultraformer',med,utilDespRef,cfg,comisionRef);
   } else if(eq==='volnewmer'){
@@ -2278,7 +2301,7 @@ async function guardarSesion(){
   mostrarCargando(true);
   const sesiones=getSesiones();
   const nuevaSesion = {
-    id:Date.now(), paciente:pac, fecha, equipo:eq, zona, zonas_json:JSON.stringify(zonasSeleccionadas), zonaVol, medico:med, cosmetologa,
+    id:Date.now(), paciente:pac, fecha, hora, equipo:eq, zona, zonas_json:JSON.stringify(zonasSeleccionadas), zonaVol, medico:med, cosmetologa,
     esPaquete, nsesion:esPaquete?nsesion:1, totalSesiones:esPaquete?totalSesiones:1, notasPaquete, cuenta, notas,
     precio:precioInput, precioFinal, descPct:descPctFinal, descRazon, soloDisparos,
     costoUltra, costoVol, costoTotal,
@@ -2368,7 +2391,7 @@ function renderSesiones(){
     return true;
   }).sort((a,b)=>b.fecha.localeCompare(a.fecha));
   const tb=document.getElementById('tabla-sesiones');
-  if(!sesiones.length){tb.innerHTML='<tr><td colspan="12" class="empty">Sin sesiones</td></tr>';return;}
+  if(!sesiones.length){tb.innerHTML='<tr><td colspan="13" class="empty">Sin sesiones</td></tr>';return;}
   tb.innerHTML=sesiones.map(s=>{
     const descLabel=s.soloDisparos
       ? `<span style="font-size:10px;color:#e53e3e;font-weight:700">Solo disparos</span>`
@@ -2380,6 +2403,7 @@ function renderSesiones(){
         : `<span style="font-size:10px;color:#a0aec0">Única</span>`;
     return `<tr>
       <td>${s.fecha}</td>
+      <td style="white-space:nowrap">${s.hora||'—'}</td>
       <td><strong>${s.paciente}</strong></td>
       <td><span class="tag tag-${s.equipo==='volformer'?'volformer':s.equipo==='volnewmer'?'vol':s.equipo==='ultraformer'?'ultra':'aqua'}">${s.equipo}</span></td>
       <td style="max-width:140px;font-size:11px" title="${s.zonas_json?JSON.parse(s.zonas_json).map(z=>z.nombre).join(', '):s.zona}">${s.zonas_json?JSON.parse(s.zonas_json).map(z=>`<span style="display:block">${z.nombre}</span>`).join(''):s.zona}</td>
