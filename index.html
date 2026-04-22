@@ -722,7 +722,17 @@ tr:hover td{background:#f7fafc}
 
 <!-- FINANCIERO -->
 <div class="page" id="page-financiero">
-  <div class="page-header"><h1>Resumen financiero</h1><p>Ingresos y distribución por equipo y socio</p></div>
+  <div class="page-header">
+    <div><h1>Resumen financiero</h1><p>Ingresos y distribución por equipo y socio</p></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:12px;color:#718096">Desde</label>
+      <input type="date" id="fin-desde" oninput="renderFinanciero()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none">
+      <label style="font-size:12px;color:#718096">Hasta</label>
+      <input type="date" id="fin-hasta" oninput="renderFinanciero()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none">
+      <button class="btn btn-outline btn-sm" onclick="limpiarFiltroFin()">Limpiar</button>
+      <button class="btn btn-success btn-sm" onclick="exportarExcelFinanciero()">Exportar Excel</button>
+    </div>
+  </div>
   <div id="stats-container"></div>
 </div>
 
@@ -1135,7 +1145,7 @@ const _PROTO_FALLBACK = [
   {id:'vf_full_face_sin_papada',equipo:'volformer',nombre:'Full face sin papada',precio:4962583,precio_doc:null,disparos_ref:540,disparos_vol:{'0':200,'3':300,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
   {id:'vf_full_face_con_papada',equipo:'volformer',nombre:'Full face con papada',precio:7046833,precio_doc:null,disparos_ref:940,disparos_vol:{'0':200,'3':400,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
   // AQUAPURE
-  {id:'a_manual',equipo:'aquapure',nombre:'Limpieza manual',precio:250000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:62500,activo:true},
+  {id:'a_manual',equipo:'aquapure',nombre:'Limpieza manual',precio:250000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:60000,activo:true},
   {id:'a_aquapure',equipo:'aquapure',nombre:'Limpieza con Aquapure',precio:285000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:60000,activo:true},
   {id:'a_masaje',equipo:'aquapure',nombre:'Limpieza Aquapure + masaje',precio:325000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:76000,activo:true},
   {id:'a_pecho',equipo:'aquapure',nombre:'Limpieza pecho y espalda (microdermoabrasión)',precio:300000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:70000,activo:true},
@@ -1392,7 +1402,7 @@ async function cargarDatos(){
     _cache.soluciones = sols.map(r=>r.data);
     _cacheAgendaAqua = agendaAqua.map(r=>r.data);
     // Migrar ganancia_cosmeto con nuevos valores de protocolo
-    const _pagoCosmeto={'Limpieza manual':62500,'Limpieza con Aquapure':60000,'Limpieza Aquapure + masaje':76000,'Limpieza pecho y espalda (microdermoabrasión)':70000,'Limpieza Aquapure + sueroterapia (vitamina C)':85000};
+    const _pagoCosmeto={'Limpieza manual':60000,'Limpieza con Aquapure':60000,'Limpieza Aquapure + masaje':76000,'Limpieza pecho y espalda (microdermoabrasión)':70000,'Limpieza Aquapure + sueroterapia (vitamina C)':85000};
     const citasDesact=_cacheAgendaAqua.filter(c=>{const e=_pagoCosmeto[c.tipo_limpieza];return e!==undefined&&c.ganancia_cosmeto!==e;});
     if(citasDesact.length){
       citasDesact.forEach(c=>{c.ganancia_cosmeto=_pagoCosmeto[c.tipo_limpieza];});
@@ -1405,7 +1415,8 @@ async function cargarDatos(){
     _cache.referidos = refRow ? refRow.valor : null;
     if(cosmetoRow && Array.isArray(cosmetoRow.valor)) listaCosmetologas = cosmetoRow.valor;
     // Si Supabase está vacío o tiene protocolos Aquapure desactualizados, usar fallback inmediatamente y sincronizar
-    const aquaDesact = protos.some(p=>p.equipo==='aquapure' && p.costo_consumibles !== 125000);
+    const aquaDesact = protos.some(p=>p.equipo==='aquapure' && p.costo_consumibles !== 125000)
+      || protos.some(p=>p.id==='a_manual' && p.pago_cosmeto !== 60000);
     _protosDB = (!protos.length || aquaDesact) ? _PROTO_FALLBACK : protos;
     _cargarProtocolos(_protosDB);
     if(!protos.length || aquaDesact){
@@ -2200,10 +2211,8 @@ function _calcDistribucionEquipo(items,equipo,med,util,cfg,yaDescontadoRef){
   const visitante=equipo==='ultraformer'?'Sneider':'Carolina';
   if(med===dueno||med==='Cosmetologa'){
     const mant=util*cfg.mant;
-    const admin=util*cfg.admin;
     items.push({lbl:`Mantenimiento ${equipo==='ultraformer'?'Ultra':'Vol'} (${pct(cfg.mant)})`,val:cop(mant),cls:'warning'});
-    items.push({lbl:`Admin Santiago (${pct(cfg.admin)})`,val:cop(admin),cls:'warning'});
-    items.push({lbl:`Ganancia ${dueno}`,val:cop(util-mant-admin),cls:'success'});
+    items.push({lbl:`Ganancia ${dueno}`,val:cop(util-mant),cls:'success'});
   } else {
     const cruzado=util*cfg.cruzado;
     items.push({lbl:`Cobro uso ${equipo==='ultraformer'?'Ultra':'Vol'} → ${dueno} (${pct(cfg.cruzado)})`,val:cop(cruzado),cls:'highlight'});
@@ -2349,8 +2358,8 @@ function _desgloseEquipo(equipo,med,util,cfg,comisionRef){
   const dueno=equipo==='ultraformer'?'Carolina':'Sneider';
   const visitante=equipo==='ultraformer'?'Sneider':'Carolina';
   if(med===dueno){
-    const mant=util*cfg.mant; const admin=util*cfg.admin;
-    return {mantenimiento:mant,admin,ganancia_dueno:util-mant-admin,comisionRef};
+    const mant=util*cfg.mant;
+    return {mantenimiento:mant,ganancia_dueno:util-mant,comisionRef};
   } else {
     const cruzado=util*cfg.cruzado;
     return {cobro_uso:cruzado,ganancia_dueno:cruzado,ganancia_otro:util-cruzado,comisionRef};
@@ -2628,10 +2637,19 @@ function renderPacientes(){
 }
 
 // ===================== FINANCIERO =====================
+function limpiarFiltroFin(){
+  document.getElementById('fin-desde').value='';
+  document.getElementById('fin-hasta').value='';
+  renderFinanciero();
+}
 function renderFinanciero(){
-  const sesiones=getSesiones();
+  const desde=(document.getElementById('fin-desde')||{}).value||'';
+  const hasta=(document.getElementById('fin-hasta')||{}).value||'';
+  let sesiones=getSesiones();
+  if(desde) sesiones=sesiones.filter(s=>(s.fecha||'')>=desde);
+  if(hasta) sesiones=sesiones.filter(s=>(s.fecha||'')<=hasta);
   const totalFact=sesiones.reduce((a,s)=>a+(s.precioFinal||s.precio),0);
-  let carolinaTot=0,sneiderTot=0,santiagoTot=0,mantTot=0;
+  let carolinaTot=0,sneiderTot=0,mantTot=0;
   let cosmetLimpiezaTot=0, cosmetComisionTot={};  // por cosmetóloga
   let referidoComisionTot={};
   let totalDescuentos=sesiones.reduce((a,s)=>a+(s.precio-(s.precioFinal||s.precio)),0);
@@ -2650,17 +2668,16 @@ function renderFinanciero(){
         if(!cosmetComisionTot[s.cosmetologa]) cosmetComisionTot[s.cosmetologa]={limpieza:0,comision:0};
         cosmetComisionTot[s.cosmetologa].limpieza+=d.pagoCosmeto_limpieza||0;
       }
-      santiagoTot+=d.admin||0;
       mantTot+=d.mantenimiento||0;
       carolinaTot+=d.carolina||0;
       sneiderTot+=d.sneider||0;
     } else if(eq==='ultraformer'){
       const du=d.ultra||d;
-      if(med==='Carolina'){carolinaTot+=du.ganancia_dueno||0; mantTot+=du.mantenimiento||0; santiagoTot+=du.admin||0;}
+      if(med==='Carolina'){carolinaTot+=du.ganancia_dueno||0; mantTot+=du.mantenimiento||0;}
       else {sneiderTot+=du.ganancia_otro||0; carolinaTot+=du.ganancia_dueno||0;}
     } else if(eq==='volnewmer'){
       const dv=d.vol||d;
-      if(med==='Sneider'){sneiderTot+=dv.ganancia_dueno||0; mantTot+=dv.mantenimiento||0; santiagoTot+=dv.admin||0;}
+      if(med==='Sneider'){sneiderTot+=dv.ganancia_dueno||0; mantTot+=dv.mantenimiento||0;}
       else {carolinaTot+=dv.ganancia_otro||0; sneiderTot+=dv.ganancia_dueno||0;}
     } else if(eq==='volformer'){
       const dU=d.ultra||{};const dV=d.vol||{};
@@ -2672,7 +2689,6 @@ function renderFinanciero(){
         carolinaTot+=(dV.ganancia_otro||0)+(dU.ganancia_dueno||0);
       }
       mantTot+=(dU.mantenimiento||0)+(dV.mantenimiento||0);
-      santiagoTot+=(dU.admin||0)+(dV.admin||0);
     }
   });
 
@@ -2706,7 +2722,6 @@ function renderFinanciero(){
       <div class="result-grid">
         <div class="result-item success"><div class="val">${cop(carolinaTot)}</div><div class="lbl">Carolina</div></div>
         <div class="result-item highlight"><div class="val">${cop(sneiderTot)}</div><div class="lbl">Sneider</div></div>
-        <div class="result-item"><div class="val">${cop(santiagoTot)}</div><div class="lbl">Santiago (Admin)</div></div>
         <div class="result-item warning"><div class="val">${cop(mantTot)}</div><div class="lbl">Reserva mantenimiento</div></div>
         <div class="result-item warning"><div class="val">${cop(cosmetLimpiezaTot)}</div><div class="lbl">Pago cosmetólogas</div></div>
         <div class="result-item danger"><div class="val">${cop(totalDescuentos)}</div><div class="lbl">Total descuentos</div></div>
@@ -2729,6 +2744,84 @@ function renderFinanciero(){
 }
 
 // ===================== EXPORT =====================
+function exportarExcelFinanciero(){
+  const desde=(document.getElementById('fin-desde')||{}).value||'';
+  const hasta=(document.getElementById('fin-hasta')||{}).value||'';
+  let sesiones=getSesiones();
+  if(desde) sesiones=sesiones.filter(s=>(s.fecha||'')>=desde);
+  if(hasta) sesiones=sesiones.filter(s=>(s.fecha||'')<=hasta);
+  if(!sesiones.length){alert('No hay sesiones en el período seleccionado.');return;}
+
+  // Acumular totales (misma lógica que renderFinanciero)
+  let carolinaTot=0,sneiderTot=0,mantTot=0,cosmetLimpiezaTot=0,referidoTot=0;
+  const cosmetMap={};
+  sesiones.forEach(s=>{
+    const d=s.desglose||{};const eq=s.equipo;const med=s.medico;
+    if(s.referido&&s.comisionRef>0){
+      referidoTot+=s.comisionRef;
+      if(!cosmetMap[s.referido]) cosmetMap[s.referido]={limpieza:0,comision:0};
+      cosmetMap[s.referido].comision+=s.comisionRef;
+    }
+    if(eq==='aquapure'){
+      cosmetLimpiezaTot+=d.pagoCosmeto_limpieza||0;
+      if(s.cosmetologa&&d.pagoCosmeto_limpieza>0){
+        if(!cosmetMap[s.cosmetologa]) cosmetMap[s.cosmetologa]={limpieza:0,comision:0};
+        cosmetMap[s.cosmetologa].limpieza+=d.pagoCosmeto_limpieza||0;
+      }
+      mantTot+=d.mantenimiento||0; carolinaTot+=d.carolina||0; sneiderTot+=d.sneider||0;
+    } else if(eq==='ultraformer'){
+      const du=d.ultra||d;
+      if(med==='Carolina'){carolinaTot+=du.ganancia_dueno||0;mantTot+=du.mantenimiento||0;}
+      else{sneiderTot+=du.ganancia_otro||0;carolinaTot+=du.ganancia_dueno||0;}
+    } else if(eq==='volnewmer'){
+      const dv=d.vol||d;
+      if(med==='Sneider'){sneiderTot+=dv.ganancia_dueno||0;mantTot+=dv.mantenimiento||0;}
+      else{carolinaTot+=dv.ganancia_otro||0;sneiderTot+=dv.ganancia_dueno||0;}
+    } else if(eq==='volformer'){
+      const dU=d.ultra||{};const dV=d.vol||{};
+      if(med==='Carolina'){carolinaTot+=(dU.ganancia_dueno||0)+(dV.ganancia_otro||0);sneiderTot+=(dU.ganancia_otro||0)+(dV.ganancia_dueno||0);}
+      else{sneiderTot+=(dV.ganancia_dueno||0)+(dU.ganancia_otro||0);carolinaTot+=(dV.ganancia_otro||0)+(dU.ganancia_dueno||0);}
+      mantTot+=(dU.mantenimiento||0)+(dV.mantenimiento||0);
+    }
+  });
+
+  const wb=XLSX.utils.book_new();
+  const periodo=(desde||'inicio')+' al '+(hasta||'hoy');
+
+  // Hoja 1: Resumen
+  const resumen=[
+    ['RESUMEN FINANCIERO'],['Período:',periodo],[''],
+    ['CONCEPTO','MONTO'],
+    ['Facturación total',sesiones.reduce((a,s)=>a+(s.precioFinal||s.precio),0)],
+    [''],
+    ['Ganancias Carolina',carolinaTot],
+    ['Ganancias Sneider',sneiderTot],
+    ['Reserva mantenimiento',mantTot],
+    ['Pago cosmetólogas (limpiezas)',cosmetLimpiezaTot],
+    ['Comisiones referidos',referidoTot],
+    [''],
+    ['DESGLOSE COSMETÓLOGAS'],
+    ['Nombre','Por limpiezas','Comisiones','Total'],
+    ...Object.entries(cosmetMap).map(([n,v])=>[n,v.limpieza,v.comision,v.limpieza+v.comision])
+  ];
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumen),'Resumen');
+
+  // Hoja 2: Detalle sesiones
+  const detalle=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Cuenta','Precio','Carolina','Sneider','Cosmeto (limpieza)','Comisión referido','Referido']];
+  sesiones.sort((a,b)=>(a.fecha||'')<(b.fecha||'')?-1:1).forEach(s=>{
+    const d=s.desglose||{};
+    let car=0,sne=0,cosmLimp=0;
+    if(s.equipo==='aquapure'){car=d.carolina||0;sne=d.sneider||0;cosmLimp=d.pagoCosmeto_limpieza||0;}
+    else if(s.equipo==='ultraformer'){const du=d.ultra||d;car=s.medico==='Carolina'?du.ganancia_dueno||0:du.ganancia_dueno||0;sne=s.medico!=='Carolina'?du.ganancia_otro||0:0;}
+    else if(s.equipo==='volnewmer'){const dv=d.vol||d;sne=s.medico==='Sneider'?dv.ganancia_dueno||0:dv.ganancia_dueno||0;car=s.medico!=='Sneider'?dv.ganancia_otro||0:0;}
+    detalle.push([s.fecha||'',s.hora||'',s.paciente||'',s.equipo||'',s.medico||'',s.cosmetologa||'',s.cuenta||'',s.precioFinal||s.precio,car,sne,cosmLimp,s.comisionRef||0,s.referido||'']);
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(detalle),'Detalle');
+
+  const sufPeriodo=(desde?'_'+desde:'')+(hasta?'_'+hasta:'');
+  XLSX.writeFile(wb,'Cierre_Financiero'+sufPeriodo+'_'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
 function exportarExcelPacientes(){
   const sesiones=getSesiones();
   if(!sesiones.length){alert('No hay sesiones para exportar.');return;}
@@ -3563,6 +3656,14 @@ async function guardarCitaAqua(){
   const fecha    = document.getElementById('ca-fecha').value;
   const paciente = document.getElementById('ca-paciente').value.trim();
   if(!fecha||!paciente){ alert('Fecha y nombre del paciente son obligatorios.'); return; }
+
+  const horaVal = document.getElementById('ca-hora').value;
+  if(horaVal){
+    const conflicto = _cacheAgendaAqua.find(c=>
+      c.fecha===fecha && c.hora===horaVal && c.estado!=='Cancelada' && c.id!==(_editCitaId||'')
+    );
+    if(conflicto){ alert(`Ya hay una cita para las ${horaVal} del ${fecha} con ${conflicto.paciente}. Elige otro horario.`); return; }
+  }
 
   const id = _editCitaId || Date.now().toString();
   const data = {
