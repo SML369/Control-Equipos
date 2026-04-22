@@ -405,6 +405,24 @@ tr:hover td{background:#f7fafc}
 </div>
 
 <!-- MODAL ELIMINAR CITA AQUAPURE -->
+<!-- MODAL REALIZAR CITA AQUAPURE -->
+<div class="modal-overlay hidden" id="modal-realizar-cita">
+  <div class="modal">
+    <h2>Registrar sesión realizada</h2>
+    <p style="color:#4a5568;margin-bottom:14px">Selecciona el medio de pago para guardar en el historial.</p>
+    <select id="realizar-cuenta" style="width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:14px;margin-bottom:14px;outline:none">
+      <option value="">Seleccionar...</option>
+      <option value="Carolina">Cuenta Carolina</option>
+      <option value="Sneider">Cuenta Sneider</option>
+      <option value="Efectivo">Efectivo</option>
+    </select>
+    <div style="font-size:11px;color:#e53e3e;min-height:14px;margin-bottom:4px" id="realizar-err"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalRealizarCita()">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarRealizarCita()">Confirmar y registrar</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay hidden" id="modal-delete-cita">
   <div class="modal">
     <h2>Eliminar cita</h2>
@@ -1041,6 +1059,7 @@ const EMAIL_TO_USER = {
 };
 let _authToken = null;
 const DELETE_CODE = '5027';
+let _citaPendienteRealizar = null;
 
 // Transductores Ultraformer
 const TRANS_ULTRA_TIPOS = [
@@ -3564,6 +3583,16 @@ async function guardarCitaAqua(){
     fecha_registro: new Date().toISOString().split('T')[0]
   };
 
+  // Si se marca como Realizada en edición → convertir a sesión
+  if(_editCitaId && data.estado === 'Realizada'){
+    _citaPendienteRealizar = data;
+    cerrarModalCita();
+    document.getElementById('realizar-cuenta').value = '';
+    document.getElementById('realizar-err').textContent = '';
+    document.getElementById('modal-realizar-cita').classList.remove('hidden');
+    return;
+  }
+
   await sbUpsert('agenda_aquapure', {id, data});
 
   const idx = _cacheAgendaAqua.findIndex(c=>c.id===id);
@@ -3599,6 +3628,53 @@ async function confirmarDeleteCita(){
   _cacheAgendaAqua=_cacheAgendaAqua.filter(c=>c.id!==_pendingDeleteCitaId);
   cerrarModalDeleteCita();
   renderAgendaAqua();
+}
+
+function cerrarModalRealizarCita(){
+  document.getElementById('modal-realizar-cita').classList.add('hidden');
+  _citaPendienteRealizar = null;
+}
+
+async function confirmarRealizarCita(){
+  const cuenta = document.getElementById('realizar-cuenta').value;
+  if(!cuenta){ document.getElementById('realizar-err').textContent='Selecciona un medio de pago.'; return; }
+
+  const c = _citaPendienteRealizar;
+  const proto = PROTOCOLOS_AQUAPURE.find(p=>p.nombre===c.tipo_limpieza);
+  const costoConsumibles = proto ? proto.costoConsumibles : 0;
+  const pagoCosmeto = proto ? proto.pagoCosmeto : 0;
+  const utilidades = c.precio - costoConsumibles - pagoCosmeto;
+  const carolina = c.doctor==='Carolina' ? utilidades : 0;
+  const sneider  = c.doctor==='Sneider'  ? utilidades : 0;
+
+  const sesion = {
+    id: Date.now(),
+    paciente: c.paciente, fecha: c.fecha, hora: c.hora||'',
+    equipo: 'aquapure', zona: c.tipo_limpieza,
+    zonas_json: JSON.stringify([{nombre:c.tipo_limpieza, precio:c.precio}]),
+    zonaVol: '', medico: c.doctor, cosmetologa: c.cosmetologa,
+    esPaquete: false, nsesion: 1, totalSesiones: 1, notasPaquete: '',
+    cuenta, notas: c.notas||'',
+    precio: c.precio, precioFinal: c.precio,
+    descPct: 0, descRazon: '', soloDisparos: false,
+    costoUltra: 0, costoVol: 0, costoTotal: 0,
+    transUltra: [], transVol: [],
+    referido: '', referidoTipo: '', comisionRef: 0,
+    utilBruta: c.precio, utilDespRef: c.precio,
+    desglose: {costoConsumibles, pagoCosmeto_limpieza:pagoCosmeto, utilidades, comisionRef:0, carolina, sneider},
+    cfg: getCfg(),
+    registradoPor: currentUser||'—',
+    fecha_registro: new Date().toISOString().split('T')[0]
+  };
+
+  mostrarCargando(true);
+  await agregarSesionDB(sesion);
+  await sbDelete('agenda_aquapure','id',c.id);
+  _cacheAgendaAqua = _cacheAgendaAqua.filter(x=>x.id!==c.id);
+  mostrarCargando(false);
+  cerrarModalRealizarCita();
+  renderAgendaAqua();
+  alert('Sesión registrada correctamente en el historial.');
 }
 
 // ===================== COSMETÓLOGAS EN CONFIGURACIÓN =====================
