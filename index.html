@@ -1372,6 +1372,13 @@ async function cargarDatos(){
     _cache.vol = vol.map(r=>r.data);
     _cache.soluciones = sols.map(r=>r.data);
     _cacheAgendaAqua = agendaAqua.map(r=>r.data);
+    // Migrar ganancia_cosmeto con nuevos valores de protocolo
+    const _pagoCosmeto={'Limpieza manual':62500,'Limpieza con Aquapure':60000,'Limpieza Aquapure + masaje':76000,'Limpieza pecho y espalda (microdermoabrasión)':70000,'Limpieza Aquapure + sueroterapia (vitamina C)':85000};
+    const citasDesact=_cacheAgendaAqua.filter(c=>{const e=_pagoCosmeto[c.tipo_limpieza];return e!==undefined&&c.ganancia_cosmeto!==e;});
+    if(citasDesact.length){
+      citasDesact.forEach(c=>{c.ganancia_cosmeto=_pagoCosmeto[c.tipo_limpieza];});
+      Promise.all(citasDesact.map(c=>sbUpsert('agenda_aquapure',{id:c.id,data:c}))).catch(e=>console.warn('Error migrando ganancia_cosmeto:',e));
+    }
     const cfgRow = cfgRows.find(r=>r.clave==='cfg');
     const refRow = cfgRows.find(r=>r.clave==='referidos');
     const cosmetoRow = cfgRows.find(r=>r.clave==='cosmetologas');
