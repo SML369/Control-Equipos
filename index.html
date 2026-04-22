@@ -1269,10 +1269,11 @@ async function cerrarSesion(){
 
 // ===================== CONFIG =====================
 function getCfg(){
+  const adminEl=document.getElementById('cfg-admin');
   return {
     cruzado:(parseFloat(document.getElementById('cfg-cruzado').value)||30)/100,
     mant:(parseFloat(document.getElementById('cfg-mant').value)||5)/100,
-    admin:(parseFloat(document.getElementById('cfg-admin').value)||5)/100,
+    admin:adminEl?(parseFloat(adminEl.value)||5)/100:0.05,
   };
 }
 function guardarConfig(){
@@ -1481,10 +1482,11 @@ async function setSoluciones(arr){
 
 // ===================== STORAGE — CONFIG =====================
 function getCfg(){
+  const adminEl=document.getElementById('cfg-admin');
   return {
     cruzado:(parseFloat(document.getElementById('cfg-cruzado').value)||30)/100,
     mant:(parseFloat(document.getElementById('cfg-mant').value)||5)/100,
-    admin:(parseFloat(document.getElementById('cfg-admin').value)||5)/100,
+    admin:adminEl?(parseFloat(adminEl.value)||5)/100:0.05,
   };
 }
 async function guardarConfig(){
