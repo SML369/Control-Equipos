@@ -22,6 +22,8 @@ body{font-family:'Montserrat',sans-serif;background:#f7f5f3;color:#2d3748;font-s
 .main{flex:1;overflow-y:auto;background:#f7f5f3}
 .page{display:none;padding:20px}
 .page.active{display:block}
+#btn-sync-calendar{display:none}
+body.admin-user #btn-sync-calendar{display:inline-flex}
 .page-header{margin-bottom:16px}
 .page-header h1{font-size:19px;font-weight:700;color:#2d3748}
 .page-header p{font-size:12px;color:#718096;margin-top:3px}
@@ -340,11 +342,24 @@ tr:hover td{background:#f7fafc}
     <div class="form-grid">
       <div class="form-group">
         <label>Fecha</label>
-        <input type="date" id="ca-fecha">
+        <input type="date" id="ca-fecha" onchange="actualizarHorasDisponibles()">
       </div>
       <div class="form-group">
         <label>Hora</label>
-        <input type="time" id="ca-hora">
+        <select id="ca-hora">
+          <option value="">Seleccionar hora...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Duración (min)</label>
+        <select id="ca-duracion" onchange="actualizarHorasDisponibles()">
+          <option value="30">30 min</option>
+          <option value="45">45 min</option>
+          <option value="60" selected>1 hora (60 min)</option>
+          <option value="75">1h 15 min</option>
+          <option value="90">1h 30 min</option>
+          <option value="120">2 horas</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Paciente</label>
@@ -1033,7 +1048,7 @@ tr:hover td{background:#f7fafc}
       <input type="month" id="filtro-mes-cita" onchange="renderAgendaAqua()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
       <div style="flex:1"></div>
       <button class="btn btn-outline btn-sm" onclick="exportarExcelAgendaAqua()">Exportar Excel</button>
-      <button class="btn btn-outline btn-sm" onclick="sincronizarTodasLasCitas()" title="Enviar todas las citas existentes a Google Calendar">Sync Calendar</button>
+      <button id="btn-sync-calendar" class="btn btn-outline btn-sm" onclick="sincronizarTodasLasCitas()" title="Enviar todas las citas existentes a Google Calendar">Sync Calendar</button>
       <button class="btn btn-primary btn-sm" onclick="mostrarFormCita()">+ Nueva cita</button>
     </div>
   </div>
@@ -1195,6 +1210,7 @@ async function _onLoginSuccess(nombre){
   currentUser = nombre;
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('main-app').style.display='flex';
+  document.body.classList.toggle('admin-user', nombre === 'Santiago');
 
   if(nombre === 'Cosmetologa'){
     esCosmetologa = true;
@@ -1262,6 +1278,7 @@ async function cerrarSesion(){
   currentUser = null;
   currentCosmetologa = null;
   esCosmetologa = false;
+  document.body.classList.remove('admin-user');
   aplicarRestriccionSidebar();
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('main-app').style.display='none';
@@ -3630,9 +3647,11 @@ function mostrarFormCita(cita=null){
   poblarFiltroCosmeto();
   poblarProtocolosAqua();
 
+  let _horaEdicion = '';
   if(cita){
     document.getElementById('ca-fecha').value=cita.fecha||'';
-    document.getElementById('ca-hora').value=cita.hora||'';
+    document.getElementById('ca-duracion').value=String(cita.duracion||60);
+    _horaEdicion = cita.hora||'';
     document.getElementById('ca-paciente').value=cita.paciente||'';
     document.getElementById('ca-documento').value=cita.documento||'';
     document.getElementById('ca-celular').value=cita.celular||'';
@@ -3646,7 +3665,7 @@ function mostrarFormCita(cita=null){
     document.getElementById('ca-notas').value=cita.notas||'';
   } else {
     document.getElementById('ca-fecha').value=new Date().toISOString().split('T')[0];
-    document.getElementById('ca-hora').value='';
+    document.getElementById('ca-duracion').value='60';
     document.getElementById('ca-paciente').value='';
     document.getElementById('ca-documento').value='';
     document.getElementById('ca-celular').value='';
@@ -3668,12 +3687,59 @@ function mostrarFormCita(cita=null){
     selCosmeto.disabled=false;
   }
 
+  actualizarHorasDisponibles();
+  if(_horaEdicion) document.getElementById('ca-hora').value=_horaEdicion;
+
   document.getElementById('modal-cita-aqua').classList.remove('hidden');
 }
 
 function cerrarModalCita(){
   document.getElementById('modal-cita-aqua').classList.add('hidden');
   _editCitaId=null;
+}
+
+function horaEnMin(h){
+  const [hh,mm]=h.split(':').map(Number);
+  return hh*60+mm;
+}
+
+function generarHorasDisponibles(fecha, excludeId){
+  const dur=parseInt(document.getElementById('ca-duracion').value)||60;
+  const citasDelDia=_cacheAgendaAqua.filter(c=>
+    c.fecha===fecha && c.estado!=='Cancelada' && c.id!==(excludeId||'')
+  );
+  const slots=[];
+  for(let m=7*60; m<=19*60; m+=15){
+    const hh=String(Math.floor(m/60)).padStart(2,'0');
+    const mm=String(m%60).padStart(2,'0');
+    const slotMin=m;
+    const libre=!citasDelDia.some(c=>{
+      const cMin=horaEnMin(c.hora);
+      const cDur=parseInt(c.duracion)||60;
+      return slotMin<cMin+cDur && slotMin+dur>cMin;
+    });
+    if(libre) slots.push(`${hh}:${mm}`);
+  }
+  return slots;
+}
+
+function actualizarHorasDisponibles(){
+  const fecha=document.getElementById('ca-fecha').value;
+  const sel=document.getElementById('ca-hora');
+  const anterior=sel.value;
+  sel.innerHTML='<option value="">Seleccionar hora...</option>';
+  if(!fecha) return;
+  generarHorasDisponibles(fecha,_editCitaId).forEach(h=>{
+    const [hh,mm]=h.split(':');
+    const hi=parseInt(hh);
+    const h12=hi>12?hi-12:(hi||12);
+    const ampm=hi>=12?'PM':'AM';
+    const opt=document.createElement('option');
+    opt.value=h;
+    opt.textContent=`${h12}:${mm} ${ampm}`;
+    sel.appendChild(opt);
+  });
+  if(anterior && sel.querySelector(`option[value="${anterior}"]`)) sel.value=anterior;
 }
 
 async function sincronizarTodasLasCitas(){
@@ -3705,11 +3771,21 @@ async function guardarCitaAqua(){
   if(!fecha||!paciente){ alert('Fecha y nombre del paciente son obligatorios.'); return; }
 
   const horaVal = document.getElementById('ca-hora').value;
+  const durNueva = parseInt(document.getElementById('ca-duracion').value)||60;
   if(horaVal){
-    const conflicto = _cacheAgendaAqua.find(c=>
-      c.fecha===fecha && c.hora===horaVal && c.estado!=='Cancelada' && c.id!==(_editCitaId||'')
-    );
-    if(conflicto){ alert(`Ya hay una cita para las ${horaVal} del ${fecha} con ${conflicto.paciente}. Elige otro horario.`); return; }
+    const nMin = horaEnMin(horaVal);
+    const conflicto = _cacheAgendaAqua.find(c=>{
+      if(c.fecha!==fecha || c.estado==='Cancelada' || c.id===(_editCitaId||'')) return false;
+      const cMin=horaEnMin(c.hora);
+      const cDur=parseInt(c.duracion)||60;
+      return nMin<cMin+cDur && nMin+durNueva>cMin;
+    });
+    if(conflicto){
+      const finMin=horaEnMin(conflicto.hora)+(parseInt(conflicto.duracion)||60);
+      const hFin=`${String(Math.floor(finMin/60)).padStart(2,'0')}:${String(finMin%60).padStart(2,'0')}`;
+      alert(`Conflicto con la cita de ${conflicto.paciente} (${conflicto.hora}–${hFin}). Elige otro horario.`);
+      return;
+    }
   }
 
   const id = _editCitaId || Date.now().toString();
@@ -3717,6 +3793,7 @@ async function guardarCitaAqua(){
     id,
     fecha,
     hora:          document.getElementById('ca-hora').value,
+    duracion:      durNueva,
     paciente,
     documento:     document.getElementById('ca-documento').value.trim(),
     celular:       document.getElementById('ca-celular').value.trim(),
