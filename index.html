@@ -1361,6 +1361,7 @@ function renderReferidosPreview(){
 // ===================== SUPABASE CONFIG =====================
 const SUPA_URL = 'https://sfcdoeuyjtmeovvderim.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmY2RvZXV5anRtZW92dmRlcmltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MTMzNTQsImV4cCI6MjA5MDk4OTM1NH0.8E35cofE8kLb5RhmpIc5Q0ygdKTRiy_9z0NHzNGPl3Q';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz-wqC9SqQ0FLdIrY72VIV2iIBLC0YEE2tryZVmAZOvqNfXNjZySUUlVigCpUXAzPLz/exec';
 function getH(){
   const token = _authToken || SUPA_KEY;
   return {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token};
@@ -3652,6 +3653,15 @@ function cerrarModalCita(){
   _editCitaId=null;
 }
 
+function sincronizarConCalendar(action, cita){
+  if(!APPS_SCRIPT_URL) return;
+  fetch(APPS_SCRIPT_URL,{
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action, cita})
+  }).catch(()=>{});
+}
+
 async function guardarCitaAqua(){
   const fecha    = document.getElementById('ca-fecha').value;
   const paciente = document.getElementById('ca-paciente').value.trim();
@@ -3695,6 +3705,7 @@ async function guardarCitaAqua(){
   }
 
   await sbUpsert('agenda_aquapure', {id, data});
+  sincronizarConCalendar(_editCitaId ? 'update' : 'create', data);
 
   const idx = _cacheAgendaAqua.findIndex(c=>c.id===id);
   if(idx>=0) _cacheAgendaAqua[idx]=data;
@@ -3725,6 +3736,8 @@ function cerrarModalDeleteCita(){
 async function confirmarDeleteCita(){
   const code=document.getElementById('del-cita-code').value;
   if(code!==DELETE_CODE){ document.getElementById('del-cita-err').textContent='Código incorrecto.'; return; }
+  const citaAEliminar = _cacheAgendaAqua.find(c=>c.id===_pendingDeleteCitaId);
+  if(citaAEliminar) sincronizarConCalendar('delete', citaAEliminar);
   await sbDelete('agenda_aquapure','id',_pendingDeleteCitaId);
   _cacheAgendaAqua=_cacheAgendaAqua.filter(c=>c.id!==_pendingDeleteCitaId);
   cerrarModalDeleteCita();
@@ -3773,6 +3786,7 @@ async function confirmarRealizarCita(){
   await sbDelete('agenda_aquapure','id',c.id);
   _cacheAgendaAqua = _cacheAgendaAqua.filter(x=>x.id!==c.id);
   mostrarCargando(false);
+  sincronizarConCalendar('delete', c);
   cerrarModalRealizarCita();
   renderAgendaAqua();
   alert('Sesión registrada correctamente en el historial.');
