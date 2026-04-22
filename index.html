@@ -392,6 +392,15 @@ tr:hover td{background:#f7fafc}
         <label>Ganancia cosmetóloga (COP)</label>
         <input type="number" id="ca-ganancia" readonly style="background:#f0fff4;color:#065f46;font-weight:700">
       </div>
+      <div class="form-group">
+        <label>Cuenta (opcional)</label>
+        <select id="ca-cuenta">
+          <option value="">Sin asignar</option>
+          <option value="Carolina">Cuenta Carolina</option>
+          <option value="Sneider">Cuenta Sneider</option>
+          <option value="Efectivo">Efectivo</option>
+        </select>
+      </div>
       <div class="form-group form-full">
         <label>Notas</label>
         <textarea id="ca-notas" placeholder="Observaciones opcionales" style="min-height:44px"></textarea>
@@ -1042,14 +1051,16 @@ tr:hover td{background:#f7fafc}
             <th>COSMETÓLOGA</th>
             <th>TIPO LIMPIEZA</th>
             <th>PRECIO</th>
-            <th>GANANCIA</th>
+            <th>COSMETO</th>
+            <th>CONSULTORIO</th>
+            <th>CUENTA</th>
             <th>ESTADO</th>
             <th>NOTAS</th>
             <th>ACCIONES</th>
           </tr>
         </thead>
         <tbody id="tbody-agenda-aqua">
-          <tr><td colspan="13" class="empty">Cargando...</td></tr>
+          <tr><td colspan="15" class="empty">Cargando...</td></tr>
         </tbody>
       </table>
     </div>
@@ -3547,7 +3558,7 @@ function renderAgendaAqua(){
   if(!tbody) return;
 
   if(!citas.length){
-    tbody.innerHTML='<tr><td colspan="13" class="empty">No hay citas registradas</td></tr>';
+    tbody.innerHTML='<tr><td colspan="15" class="empty">No hay citas registradas</td></tr>';
     document.getElementById('resumen-agenda-aqua').innerHTML='';
     return;
   }
@@ -3561,7 +3572,10 @@ function renderAgendaAqua(){
 
   const canEdit = c => !esCosmetologa || c.cosmetologa===currentCosmetologa;
 
-  tbody.innerHTML = citas.map(c=>`
+  tbody.innerHTML = citas.map(c=>{
+    const cancelada = c.estado==='Cancelada';
+    const consultorio = cancelada ? 0 : (c.precio||0)-(c.ganancia_cosmeto||0);
+    return `
     <tr>
       <td style="white-space:nowrap">${_fmtFecha(c.fecha)}</td>
       <td style="white-space:nowrap">${c.hora||''}</td>
@@ -3573,6 +3587,8 @@ function renderAgendaAqua(){
       <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.tipo_limpieza||''}">${c.tipo_limpieza||''}</td>
       <td style="white-space:nowrap">${cop(c.precio||0)}</td>
       <td style="white-space:nowrap;color:#065f46;font-weight:700">${cop(c.ganancia_cosmeto||0)}</td>
+      <td style="white-space:nowrap;color:#1e40af;font-weight:700">${cancelada?'—':cop(consultorio)}</td>
+      <td style="white-space:nowrap">${c.cuenta||'—'}</td>
       <td><span class="badge" style="${estadoStyle[c.estado]||''}">${c.estado||''}</span></td>
       <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.notas||''}">${c.notas||''}</td>
       <td>
@@ -3581,18 +3597,22 @@ function renderAgendaAqua(){
           <button class="btn btn-danger btn-sm" onclick="abrirDeleteCita('${c.id}')">×</button>
         </div>`:''}
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 
   const realizadas = citas.filter(c=>c.estado==='Realizada').length;
   const pendientes = citas.filter(c=>c.estado==='Pendiente'||c.estado==='Confirmada').length;
-  const totalGanancia = citas.filter(c=>c.estado!=='Cancelada').reduce((s,c)=>s+(c.ganancia_cosmeto||0),0);
+  const activas = citas.filter(c=>c.estado!=='Cancelada');
+  const totalGanancia = activas.reduce((s,c)=>s+(c.ganancia_cosmeto||0),0);
+  const totalConsultorio = activas.reduce((s,c)=>s+(c.precio||0)-(c.ganancia_cosmeto||0),0);
   const labelCosmeto = filtroCosmeto ? ' — '+filtroCosmeto : '';
 
   document.getElementById('resumen-agenda-aqua').innerHTML=`
     <div class="stat-card"><div class="number">${citas.length}</div><div class="label">Total citas</div></div>
     <div class="stat-card"><div class="number" style="color:#065f46">${realizadas}</div><div class="label">Realizadas</div></div>
     <div class="stat-card"><div class="number" style="color:#1e40af">${pendientes}</div><div class="label">Pendientes / Confirmadas</div></div>
-    <div class="stat-card"><div class="number" style="color:#065f46;font-size:14px">${cop(totalGanancia)}</div><div class="label">Ganancia cosmetóloga${labelCosmeto}</div></div>`;
+    <div class="stat-card"><div class="number" style="color:#065f46;font-size:14px">${cop(totalGanancia)}</div><div class="label">Ganancia cosmetóloga${labelCosmeto}</div></div>
+    <div class="stat-card"><div class="number" style="color:#1e40af;font-size:14px">${cop(totalConsultorio)}</div><div class="label">Ganancia consultorio</div></div>`;
 }
 
 function _fmtFecha(fecha){
@@ -3622,6 +3642,7 @@ function mostrarFormCita(cita=null){
     document.getElementById('ca-precio').value=cita.precio||'';
     document.getElementById('ca-ganancia').value=cita.ganancia_cosmeto||'';
     document.getElementById('ca-estado').value=cita.estado||'Pendiente';
+    document.getElementById('ca-cuenta').value=cita.cuenta||'';
     document.getElementById('ca-notas').value=cita.notas||'';
   } else {
     document.getElementById('ca-fecha').value=new Date().toISOString().split('T')[0];
@@ -3635,6 +3656,7 @@ function mostrarFormCita(cita=null){
     document.getElementById('ca-precio').value='';
     document.getElementById('ca-ganancia').value='';
     document.getElementById('ca-estado').value='Pendiente';
+    document.getElementById('ca-cuenta').value='';
     document.getElementById('ca-notas').value='';
   }
 
@@ -3703,6 +3725,7 @@ async function guardarCitaAqua(){
     precio:        parseFloat(document.getElementById('ca-precio').value)||0,
     ganancia_cosmeto: parseFloat(document.getElementById('ca-ganancia').value)||0,
     estado:        document.getElementById('ca-estado').value,
+    cuenta:        document.getElementById('ca-cuenta').value,
     notas:         document.getElementById('ca-notas').value.trim(),
     registrado_por: currentCosmetologa||currentUser,
     fecha_registro: new Date().toISOString().split('T')[0]
@@ -3712,7 +3735,7 @@ async function guardarCitaAqua(){
   if(_editCitaId && data.estado === 'Realizada'){
     _citaPendienteRealizar = data;
     cerrarModalCita();
-    document.getElementById('realizar-cuenta').value = '';
+    document.getElementById('realizar-cuenta').value = data.cuenta || '';
     document.getElementById('realizar-err').textContent = '';
     document.getElementById('modal-realizar-cita').classList.remove('hidden');
     return;
