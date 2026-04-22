@@ -1497,7 +1497,8 @@ function aplicarConfig(){
   if(c){
     document.getElementById('cfg-cruzado').value=Math.round(c.cruzado*100);
     document.getElementById('cfg-mant').value=Math.round(c.mant*100);
-    document.getElementById('cfg-admin').value=Math.round(c.admin*100);
+    const elAdmin=document.getElementById('cfg-admin');
+    if(elAdmin) elAdmin.value=Math.round(c.admin*100);
   }
 }
 function cargarConfig(){ aplicarConfig(); }
