@@ -1024,6 +1024,7 @@ tr:hover td{background:#f7fafc}
       <input type="month" id="filtro-mes-cita" onchange="renderAgendaAqua()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
       <div style="flex:1"></div>
       <button class="btn btn-outline btn-sm" onclick="exportarExcelAgendaAqua()">Exportar Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="sincronizarTodasLasCitas()" title="Enviar todas las citas existentes a Google Calendar">Sync Calendar</button>
       <button class="btn btn-primary btn-sm" onclick="mostrarFormCita()">+ Nueva cita</button>
     </div>
   </div>
@@ -3651,6 +3652,18 @@ function mostrarFormCita(cita=null){
 function cerrarModalCita(){
   document.getElementById('modal-cita-aqua').classList.add('hidden');
   _editCitaId=null;
+}
+
+async function sincronizarTodasLasCitas(){
+  if(!_cacheAgendaAqua.length){ alert('No hay citas para sincronizar.'); return; }
+  if(!confirm(`¿Sincronizar ${_cacheAgendaAqua.length} cita(s) con Google Calendar? Esto puede tardar unos segundos.`)) return;
+  mostrarCargando(true);
+  for(const cita of _cacheAgendaAqua){
+    sincronizarConCalendar('create', cita);
+    await new Promise(r=>setTimeout(r,300)); // pequeña pausa para no saturar el Apps Script
+  }
+  mostrarCargando(false);
+  alert('Sincronización iniciada. Los eventos aparecerán en Calendar en unos segundos.');
 }
 
 function sincronizarConCalendar(action, cita){
