@@ -3683,6 +3683,7 @@ async function sincronizarTodasLasCitas(){
   mostrarCargando(true);
   for(const cita of pendientes){
     sincronizarConCalendar('create', cita);
+    cita.calendar_event_id = 'pending'; // evita duplicados si se vuelve a presionar en la misma sesión
     await new Promise(r=>setTimeout(r,300));
   }
   mostrarCargando(false);
