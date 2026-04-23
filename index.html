@@ -447,6 +447,18 @@ tr:hover td{background:#f7fafc}
     </div>
   </div>
 </div>
+<div class="modal-overlay hidden" id="modal-cancelar-cita">
+  <div class="modal">
+    <h2>Cancelar cita</h2>
+    <p style="color:#4a5568;margin-bottom:14px">Ingresa el motivo de cancelación. Quedará registrado en el historial.</p>
+    <textarea id="cancelar-motivo" placeholder="Motivo de cancelación..." style="width:100%;padding:9px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;min-height:80px;margin-bottom:10px;resize:vertical;outline:none;box-sizing:border-box"></textarea>
+    <div style="font-size:11px;color:#e53e3e;min-height:14px;margin-bottom:4px" id="cancelar-err"></div>
+    <div class="modal-btns">
+      <button class="btn btn-outline" onclick="cerrarModalCancelarCita()">Volver</button>
+      <button class="btn btn-primary" onclick="confirmarCancelarCita()">Confirmar cancelación</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay hidden" id="modal-delete-cita">
   <div class="modal">
     <h2>Eliminar cita</h2>
@@ -1097,6 +1109,7 @@ const EMAIL_TO_USER = {
 let _authToken = null;
 const DELETE_CODE = '5027';
 let _citaPendienteRealizar = null;
+let _citaPendienteCancelar = null;
 
 // Transductores Ultraformer
 const TRANS_ULTRA_TIPOS = [
@@ -2460,6 +2473,7 @@ function renderSesiones(){
   const tb=document.getElementById('tabla-sesiones');
   if(!sesiones.length){tb.innerHTML='<tr><td colspan="13" class="empty">Sin sesiones</td></tr>';return;}
   tb.innerHTML=sesiones.map(s=>{
+    const esCancelada = s.estado === 'Cancelada';
     const descLabel=s.soloDisparos
       ? `<span style="font-size:10px;color:#e53e3e;font-weight:700">Solo disparos</span>`
       : s.descPct>0
@@ -2468,11 +2482,14 @@ function renderSesiones(){
     const sesLabel=s.esPaquete
         ? `<span style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;padding:1px 6px;font-size:10px;color:#276749;font-weight:700" title="${s.notasPaquete||''}">Paquete ${s.nsesion}/${s.totalSesiones}</span>`
         : `<span style="font-size:10px;color:#a0aec0">Única</span>`;
-    return `<tr>
+    const equipoTag = esCancelada
+      ? `<span style="background:#fed7d7;color:#c53030;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700" title="${(s.notas||'').replace(/"/g,'&quot;')}">Cancelada</span>`
+      : `<span class="tag tag-${s.equipo==='volformer'?'volformer':s.equipo==='volnewmer'?'vol':s.equipo==='ultraformer'?'ultra':'aqua'}">${s.equipo}</span>`;
+    return `<tr${esCancelada?' style="background:#fff5f5"':''}>
       <td>${s.fecha}</td>
       <td style="white-space:nowrap">${s.hora||'—'}</td>
       <td><strong>${s.paciente}</strong></td>
-      <td><span class="tag tag-${s.equipo==='volformer'?'volformer':s.equipo==='volnewmer'?'vol':s.equipo==='ultraformer'?'ultra':'aqua'}">${s.equipo}</span></td>
+      <td>${equipoTag}</td>
       <td style="max-width:140px;font-size:11px" title="${s.zonas_json?JSON.parse(s.zonas_json).map(z=>z.nombre).join(', '):s.zona}">${s.zonas_json?JSON.parse(s.zonas_json).map(z=>`<span style="display:block">${z.nombre}</span>`).join(''):s.zona}</td>
       <td><strong>${cop(s.precioFinal||s.precio)}</strong></td>
       <td>${descLabel}</td>
@@ -2678,6 +2695,7 @@ function renderFinanciero(){
   let sesiones=getSesiones();
   if(desde) sesiones=sesiones.filter(s=>(s.fecha||'')>=desde);
   if(hasta) sesiones=sesiones.filter(s=>(s.fecha||'')<=hasta);
+  sesiones=sesiones.filter(s=>s.estado!=='Cancelada');
   const totalFact=sesiones.reduce((a,s)=>a+(s.precioFinal||s.precio),0);
   let carolinaTot=0,sneiderTot=0,mantTot=0;
   let cosmetLimpiezaTot=0, cosmetComisionTot={};  // por cosmetóloga
@@ -3819,6 +3837,16 @@ async function guardarCitaAqua(){
     return;
   }
 
+  const _citaOrig = _cacheAgendaAqua.find(c=>c.id===_editCitaId);
+  if(_editCitaId && data.estado === 'Cancelada' && _citaOrig?.estado !== 'Cancelada'){
+    _citaPendienteCancelar = data;
+    cerrarModalCita();
+    document.getElementById('cancelar-motivo').value = '';
+    document.getElementById('cancelar-err').textContent = '';
+    document.getElementById('modal-cancelar-cita').classList.remove('hidden');
+    return;
+  }
+
   await sbUpsert('agenda_aquapure', {id, data});
   sincronizarConCalendar(_editCitaId ? 'update' : 'create', data);
 
@@ -3862,6 +3890,51 @@ async function confirmarDeleteCita(){
 function cerrarModalRealizarCita(){
   document.getElementById('modal-realizar-cita').classList.add('hidden');
   _citaPendienteRealizar = null;
+}
+
+function cerrarModalCancelarCita(){
+  document.getElementById('modal-cancelar-cita').classList.add('hidden');
+  _citaPendienteCancelar = null;
+}
+
+async function confirmarCancelarCita(){
+  const motivo = document.getElementById('cancelar-motivo').value.trim();
+  if(!motivo){
+    document.getElementById('cancelar-err').textContent = 'El motivo de cancelación es obligatorio.';
+    return;
+  }
+  const c = _citaPendienteCancelar;
+  const notasFinales = [c.notas, `Cancelación: ${motivo}`].filter(Boolean).join(' | ');
+  const sesion = {
+    id: Date.now(),
+    paciente: c.paciente, fecha: c.fecha, hora: c.hora||'',
+    equipo: 'aquapure', zona: c.tipo_limpieza||'',
+    zonas_json: JSON.stringify([{nombre:c.tipo_limpieza||'', precio:c.precio||0}]),
+    zonaVol: '', medico: c.doctor||'', cosmetologa: c.cosmetologa||'',
+    esPaquete: false, nsesion: 1, totalSesiones: 1, notasPaquete: '',
+    cuenta: c.cuenta||'',
+    notas: notasFinales,
+    precio: c.precio||0, precioFinal: 0,
+    descPct: 0, descRazon: '', soloDisparos: false,
+    costoUltra: 0, costoVol: 0, costoTotal: 0,
+    transUltra: [], transVol: [],
+    referido: '', referidoTipo: '', comisionRef: 0,
+    utilBruta: 0, utilDespRef: 0,
+    desglose: {costoConsumibles:0, pagoCosmeto_limpieza:0, utilidades:0, comisionRef:0, carolina:0, sneider:0},
+    cfg: getCfg(),
+    estado: 'Cancelada',
+    registradoPor: currentUser||'—',
+    fecha_registro: new Date().toISOString().split('T')[0]
+  };
+  mostrarCargando(true);
+  await agregarSesionDB(sesion);
+  await sbDelete('agenda_aquapure', 'id', c.id);
+  _cacheAgendaAqua = _cacheAgendaAqua.filter(x=>x.id!==c.id);
+  sincronizarConCalendar('delete', c);
+  mostrarCargando(false);
+  cerrarModalCancelarCita();
+  renderAgendaAqua();
+  if(document.getElementById('page-sesiones')?.classList.contains('active')) renderSesiones();
 }
 
 async function confirmarRealizarCita(){
