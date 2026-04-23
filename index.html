@@ -2946,9 +2946,52 @@ function exportarExcelInventario(equipo){
 }
 
 function exportarExcel(){
-  const sesiones=getSesiones();
+  const filtEq  = document.getElementById('fil-equipo').value;
+  const filtMed = document.getElementById('fil-medico').value;
+  const filtBus = document.getElementById('fil-buscar').value.toLowerCase();
+  let sesiones  = getSesiones().filter(s=>s.estado!=='Cancelada');
+  if(filtEq)  sesiones = sesiones.filter(s=>s.equipo===filtEq);
+  if(filtMed) sesiones = sesiones.filter(s=>s.medico===filtMed);
+  if(filtBus) sesiones = sesiones.filter(s=>(s.paciente||'').toLowerCase().includes(filtBus));
+  sesiones.sort((a,b)=>(a.fecha||'')<(b.fecha||'')?-1:1);
   if(!sesiones.length){alert('No hay sesiones para exportar.');return;}
   const wb=XLSX.utils.book_new();
+
+  // ── Hoja 1: Desglose financiero por sesión ──
+  const desglose=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Zona / Tipo limpieza','Precio final','Consumibles','Pago Cosmetóloga','Carolina','Sneider','Comisión referido','Referido','Cuenta','Notas']];
+  let totPrecio=0,totCons=0,totCosmeto=0,totCar=0,totSne=0,totRef=0;
+  sesiones.forEach(s=>{
+    const d=s.desglose||{};
+    let cons=0,cosmeto=0,car=0,sne=0;
+    if(s.equipo==='aquapure'){
+      cons=d.costoConsumibles||0; cosmeto=d.pagoCosmeto_limpieza||0;
+      car=d.carolina||0; sne=d.sneider||0;
+    } else if(s.equipo==='ultraformer'){
+      const du=d.ultra||d;
+      if(s.medico==='Carolina'){car=du.ganancia_dueno||0;sne=du.ganancia_otro||0;}
+      else{sne=du.ganancia_dueno||0;car=du.ganancia_otro||0;}
+    } else if(s.equipo==='volnewmer'){
+      const dv=d.vol||d;
+      if(s.medico==='Sneider'){sne=dv.ganancia_dueno||0;car=dv.ganancia_otro||0;}
+      else{car=dv.ganancia_dueno||0;sne=dv.ganancia_otro||0;}
+    } else if(s.equipo==='volformer'){
+      const du=d.ultra||{};const dv=d.vol||{};
+      if(s.medico==='Carolina'){car=(du.ganancia_dueno||0)+(dv.ganancia_otro||0);sne=(du.ganancia_otro||0)+(dv.ganancia_dueno||0);}
+      else{sne=(dv.ganancia_dueno||0)+(du.ganancia_otro||0);car=(dv.ganancia_otro||0)+(du.ganancia_dueno||0);}
+    }
+    const precio=s.precioFinal||s.precio||0;
+    totPrecio+=precio; totCons+=cons; totCosmeto+=cosmeto; totCar+=car; totSne+=sne; totRef+=s.comisionRef||0;
+    desglose.push([
+      s.fecha||'',s.hora||'',s.paciente||'',s.equipo||'',s.medico||'',
+      s.cosmetologa||'',s.zona||'',precio,cons,cosmeto,car,sne,
+      s.comisionRef||0,s.referido||'',s.cuenta||'',s.notas||''
+    ]);
+  });
+  desglose.push([]);
+  desglose.push(['TOTALES','','','','','','',totPrecio,totCons,totCosmeto,totCar,totSne,totRef,'','','']);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(desglose),'Desglose');
+
+  // ── Hoja 2: Sesiones (datos básicos, igual que antes) ──
   const rows=[['Fecha','Paciente','Equipo','Zona','Precio bruto','Descuento %','Precio final','Médico','Cosmetóloga','Sesión','Referido','Comisión referido','Registró','Cuenta','Costo Ultra','Costo Vol','Notas']];
   sesiones.forEach(s=>{
     rows.push([s.fecha,s.paciente,s.equipo,s.zona,s.precio,Math.round((s.descPct||0)*100)+'%',s.precioFinal||s.precio,s.medico,s.cosmetologa||'',`${s.nsesion} de ${s.totalSesiones}`,s.referido||'',s.comisionRef||0,s.registradoPor||'',s.cuenta||'',s.costoUltra||0,s.costoVol||0,s.notas||'']);
