@@ -2798,6 +2798,7 @@ function exportarExcelFinanciero(){
   let sesiones=getSesiones();
   if(desde) sesiones=sesiones.filter(s=>(s.fecha||'')>=desde);
   if(hasta) sesiones=sesiones.filter(s=>(s.fecha||'')<=hasta);
+  sesiones=sesiones.filter(s=>s.estado!=='Cancelada');
   if(!sesiones.length){alert('No hay sesiones en el período seleccionado.');return;}
 
   // Acumular totales (misma lógica que renderFinanciero)
@@ -2854,15 +2855,24 @@ function exportarExcelFinanciero(){
   ];
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(resumen),'Resumen');
 
-  // Hoja 2: Detalle sesiones
-  const detalle=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Cuenta','Precio','Carolina','Sneider','Cosmeto (limpieza)','Comisión referido','Referido']];
+  // Hoja 2: Detalle sesiones (paciente por paciente)
+  const detalle=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Cuenta','Precio','Consultorio','Carolina','Sneider','Cosmeto (limpieza)','Comisión referido','Referido']];
   sesiones.sort((a,b)=>(a.fecha||'')<(b.fecha||'')?-1:1).forEach(s=>{
     const d=s.desglose||{};
-    let car=0,sne=0,cosmLimp=0;
-    if(s.equipo==='aquapure'){car=d.carolina||0;sne=d.sneider||0;cosmLimp=d.pagoCosmeto_limpieza||0;}
-    else if(s.equipo==='ultraformer'){const du=d.ultra||d;car=s.medico==='Carolina'?du.ganancia_dueno||0:du.ganancia_dueno||0;sne=s.medico!=='Carolina'?du.ganancia_otro||0:0;}
-    else if(s.equipo==='volnewmer'){const dv=d.vol||d;sne=s.medico==='Sneider'?dv.ganancia_dueno||0:dv.ganancia_dueno||0;car=s.medico!=='Sneider'?dv.ganancia_otro||0:0;}
-    detalle.push([s.fecha||'',s.hora||'',s.paciente||'',s.equipo||'',s.medico||'',s.cosmetologa||'',s.cuenta||'',s.precioFinal||s.precio,car,sne,cosmLimp,s.comisionRef||0,s.referido||'']);
+    let car=0,sne=0,cosmLimp=0,consultorio=0;
+    if(s.equipo==='aquapure'){
+      consultorio=d.costoConsumibles||0;
+      car=d.carolina||0;sne=d.sneider||0;cosmLimp=d.pagoCosmeto_limpieza||0;
+    } else if(s.equipo==='ultraformer'){
+      const du=d.ultra||d;
+      car=s.medico==='Carolina'?du.ganancia_dueno||0:du.ganancia_dueno||0;
+      sne=s.medico!=='Carolina'?du.ganancia_otro||0:0;
+    } else if(s.equipo==='volnewmer'){
+      const dv=d.vol||d;
+      sne=s.medico==='Sneider'?dv.ganancia_dueno||0:dv.ganancia_dueno||0;
+      car=s.medico!=='Sneider'?dv.ganancia_otro||0:0;
+    }
+    detalle.push([s.fecha||'',s.hora||'',s.paciente||'',s.equipo||'',s.medico||'',s.cosmetologa||'',s.cuenta||'',s.precioFinal||s.precio,consultorio,car,sne,cosmLimp,s.comisionRef||0,s.referido||'']);
   });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(detalle),'Detalle');
 
@@ -3609,7 +3619,8 @@ function renderAgendaAqua(){
 
   tbody.innerHTML = citas.map(c=>{
     const cancelada = c.estado==='Cancelada';
-    const consultorio = cancelada ? 0 : (c.precio||0)-(c.ganancia_cosmeto||0);
+    const _protoAqua = PROTOCOLOS_AQUAPURE.find(p=>p.nombre===c.tipo_limpieza);
+    const consultorio = cancelada ? 0 : (_protoAqua?.costoConsumibles||0);
     return `
     <tr>
       <td style="white-space:nowrap">${_fmtFecha(c.fecha)}</td>
@@ -3639,7 +3650,10 @@ function renderAgendaAqua(){
   const pendientes = citas.filter(c=>c.estado==='Pendiente'||c.estado==='Confirmada').length;
   const activas = citas.filter(c=>c.estado!=='Cancelada');
   const totalGanancia = activas.reduce((s,c)=>s+(c.ganancia_cosmeto||0),0);
-  const totalConsultorio = activas.reduce((s,c)=>s+(c.precio||0)-(c.ganancia_cosmeto||0),0);
+  const totalConsultorio = activas.reduce((s,c)=>{
+    const p=PROTOCOLOS_AQUAPURE.find(pr=>pr.nombre===c.tipo_limpieza);
+    return s+(p?.costoConsumibles||0);
+  },0);
   const labelCosmeto = filtroCosmeto ? ' — '+filtroCosmeto : '';
 
   document.getElementById('resumen-agenda-aqua').innerHTML=`
@@ -4025,19 +4039,25 @@ function exportarExcelAgendaAqua(){
 
   citas.sort((a,b)=>((a.fecha||'')+(a.hora||''))<((b.fecha||'')+(b.hora||''))?-1:1);
 
-  const rows=[['Fecha','Hora','Paciente','Documento','Celular','Doctor','Cosmetóloga','Tipo limpieza','Precio','Ganancia cosmetóloga','Estado','Notas','Registrado por']];
-  citas.forEach(c=>rows.push([
-    c.fecha||'', c.hora||'', c.paciente||'', c.documento||'', c.celular||'',
-    c.doctor||'', c.cosmetologa||'', c.tipo_limpieza||'',
-    c.precio||0, c.ganancia_cosmeto||0, c.estado||'', c.notas||'', c.registrado_por||''
-  ]));
+  const rows=[['Fecha','Hora','Paciente','Documento','Celular','Doctor','Cosmetóloga','Tipo limpieza','Precio','Consultorio','Ganancia cosmetóloga','Estado','Notas','Registrado por']];
+  citas.forEach(c=>{
+    const _p=PROTOCOLOS_AQUAPURE.find(pr=>pr.nombre===c.tipo_limpieza);
+    const consultorio=c.estado==='Cancelada'?0:(_p?.costoConsumibles||0);
+    rows.push([
+      c.fecha||'', c.hora||'', c.paciente||'', c.documento||'', c.celular||'',
+      c.doctor||'', c.cosmetologa||'', c.tipo_limpieza||'',
+      c.precio||0, consultorio, c.ganancia_cosmeto||0, c.estado||'', c.notas||'', c.registrado_por||''
+    ]);
+  });
 
   // Fila de totales
-  const totalGanancia = citas.filter(c=>c.estado!=='Cancelada').reduce((s,c)=>s+(c.ganancia_cosmeto||0),0);
+  const activas=citas.filter(c=>c.estado!=='Cancelada');
+  const totalGanancia = activas.reduce((s,c)=>s+(c.ganancia_cosmeto||0),0);
+  const totalConsultorio = activas.reduce((s,c)=>{const p=PROTOCOLOS_AQUAPURE.find(pr=>pr.nombre===c.tipo_limpieza);return s+(p?.costoConsumibles||0);},0);
   rows.push([]);
   rows.push(['TOTAL CITAS: '+citas.length,'','','','','','','',
-    citas.filter(c=>c.estado!=='Cancelada').reduce((s,c)=>s+(c.precio||0),0),
-    totalGanancia,'','','']);
+    activas.reduce((s,c)=>s+(c.precio||0),0),
+    totalConsultorio, totalGanancia,'','','']);
 
   const ws = XLSX.utils.aoa_to_sheet(rows);
   const wb = XLSX.utils.book_new();
