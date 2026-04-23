@@ -3988,7 +3988,7 @@ async function confirmarRealizarCita(){
   await sbDelete('agenda_aquapure','id',c.id);
   _cacheAgendaAqua = _cacheAgendaAqua.filter(x=>x.id!==c.id);
   mostrarCargando(false);
-  sincronizarConCalendar('delete', c);
+  sincronizarConCalendar('update', {...c, estado:'Realizada'});
   cerrarModalRealizarCita();
   renderAgendaAqua();
   alert('Sesión registrada correctamente en el historial.');
