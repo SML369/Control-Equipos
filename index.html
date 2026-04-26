@@ -3904,6 +3904,7 @@ async function guardarCitaAqua(){
     return;
   }
 
+  if(_editCitaId && _citaOrig?.calendar_event_id) data.calendar_event_id = _citaOrig.calendar_event_id;
   await sbUpsert('agenda_aquapure', {id, data});
   sincronizarConCalendar(_editCitaId ? 'update' : 'create', data);
 
