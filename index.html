@@ -1060,6 +1060,7 @@ tr:hover td{background:#f7fafc}
       <input type="month" id="filtro-mes-cita" onchange="renderAgendaAqua()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
       <div style="flex:1"></div>
       <button class="btn btn-outline btn-sm" onclick="exportarExcelAgendaAqua()">Exportar Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="copiarURLiCal()" title="Copia la URL para re-suscribirte en Google Calendar y forzar actualización">📅 URL Calendar</button>
       <button class="btn btn-primary btn-sm" onclick="mostrarFormCita()">+ Nueva cita</button>
     </div>
   </div>
@@ -4038,6 +4039,13 @@ function eliminarCosmetologa(i){
 
 async function guardarCosmetologas(){
   await sbUpsert('configuracion',{clave:'cosmetologas',valor:listaCosmetologas});
+}
+
+function copiarURLiCal(){
+  const url = 'https://sfcdoeuyjtmeovvderim.supabase.co/functions/v1/agenda-ical';
+  navigator.clipboard.writeText(url).then(()=>{
+    alert('URL copiada al portapapeles.\n\nGoogle Calendar se actualiza automáticamente cada 8–24h.\n\nPara forzar la actualización: en Google Calendar elimina la suscripción "Agenda Aquapure" y vuelve a agregarla con esta URL.');
+  }).catch(()=>{ prompt('Copia esta URL manualmente:', url); });
 }
 
 function exportarExcelAgendaAqua(){
