@@ -3904,11 +3904,8 @@ async function guardarCitaAqua(){
     return;
   }
 
-  if(_editCitaId && _citaOrig?.calendar_event_id){
-    sincronizarConCalendar('delete', _citaOrig);
-  }
   await sbUpsert('agenda_aquapure', {id, data});
-  sincronizarConCalendar('create', data);
+  sincronizarConCalendar(_editCitaId ? 'update' : 'create', data);
 
   const idx = _cacheAgendaAqua.findIndex(c=>c.id===id);
   if(idx>=0) _cacheAgendaAqua[idx]=data;
