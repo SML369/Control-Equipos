@@ -1860,12 +1860,19 @@ function onDescuentoInput(){
 }
 
 function onPrecioInput(){
-  document.getElementById('f-precio').dataset.editado='1';
   const precioIngresado=parseInt(document.getElementById('f-precio').value)||0;
   const precioBase=zonasSeleccionadas.reduce((a,z)=>a+(z.precio||0),0);
-  if(precioBase>0&&precioIngresado>=0){
-    const desc=Math.max(0,Math.round((precioBase-precioIngresado)/precioBase*100));
-    document.getElementById('f-descuento').value=desc;
+  if(!precioIngresado){
+    // Si el usuario borró el precio, volver a modo auto-fill
+    document.getElementById('f-precio').dataset.editado='';
+    if(precioBase>0) document.getElementById('f-precio').value=precioBase;
+    document.getElementById('f-descuento').value=0;
+  } else {
+    document.getElementById('f-precio').dataset.editado='1';
+    if(precioBase>0){
+      const desc=Math.max(0,Math.round((precioBase-precioIngresado)/precioBase*100));
+      document.getElementById('f-descuento').value=desc;
+    }
   }
   calcular();
 }
@@ -1976,7 +1983,7 @@ function updateZonaPrecio(idx,valor){
   const total=zonasSeleccionadas.reduce((a,z)=>a+z.precio,0);
   document.getElementById('zonas-total-val').textContent=cop(total);
   const fp=document.getElementById('f-precio');
-  if(!fp.dataset.editado) fp.value=total;
+  if(!fp.dataset.editado || !fp.value) fp.value=total;
   const ref=document.getElementById('precio-roi-ref');
   if(ref) ref.textContent=total>0?`Precio ROI: ${cop(total)}`:'';
   calcular();
@@ -1993,7 +2000,7 @@ function renderZonas(){
   }
   const total=zonasSeleccionadas.reduce((a,z)=>a+z.precio,0);
   const fp2=document.getElementById('f-precio');
-  if(!fp2.dataset.editado) fp2.value=total;
+  if(!fp2.dataset.editado || !fp2.value) fp2.value=total;
   const ref2=document.getElementById('precio-roi-ref');
   if(ref2) ref2.textContent=total>0?`Precio ROI: ${cop(total)}`:'';
   lista.innerHTML=zonasSeleccionadas.map((z,idx)=>`
