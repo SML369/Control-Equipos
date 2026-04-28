@@ -2270,29 +2270,32 @@ function calcular(){
       items.push({lbl:`Ganancia ${med}`,val:cop(utilidades),cls:'success'});
     }
   } else if(eq==='ultraformer'){
-    _calcDistribucionEquipo(items,'ultraformer',med,utilDespRef,cfg,comisionRef>0);
+    _calcDistribucionEquipo(items,'ultraformer',med,utilDespRef,cfg,comisionRef>0,descPct>0);
   } else if(eq==='volnewmer'){
-    _calcDistribucionEquipo(items,'volnewmer',med,utilDespRef,cfg,comisionRef>0);
+    _calcDistribucionEquipo(items,'volnewmer',med,utilDespRef,cfg,comisionRef>0,descPct>0);
   } else if(eq==='volformer'){
     // Separar por equipo
     const utilUltra=costoUltra>0||costoVol>0 ? (costoUltra/(costoUltra+costoVol||1))*utilDespRef : utilDespRef/2;
     const utilVoln=utilDespRef-utilUltra;
     items.push({lbl:'— Lado Ultraformer —',val:'',cls:''});
-    _calcDistribucionEquipo(items,'ultraformer',med,utilUltra,cfg,false);
+    _calcDistribucionEquipo(items,'ultraformer',med,utilUltra,cfg,false,descPct>0);
     items.push({lbl:'— Lado Volnewmer —',val:'',cls:''});
-    _calcDistribucionEquipo(items,'volnewmer',med,utilVoln,cfg,false);
+    _calcDistribucionEquipo(items,'volnewmer',med,utilVoln,cfg,false,descPct>0);
   }
 
   document.getElementById('result-box').classList.remove('hidden');
   document.getElementById('result-grid').innerHTML=items.filter(i=>i.lbl).map(i=>`<div class="result-item ${i.cls}"><div class="val">${i.val}</div><div class="lbl">${i.lbl}</div></div>`).join('');
 }
 
-function _calcDistribucionEquipo(items,equipo,med,util,cfg,yaDescontadoRef){
+function _calcDistribucionEquipo(items,equipo,med,util,cfg,yaDescontadoRef,conDescuento=false){
   const dueno=equipo==='ultraformer'?'Carolina':'Sneider';
   const visitante=equipo==='ultraformer'?'Sneider':'Carolina';
   if(med===dueno||med==='Cosmetologa'){
-    const mant=util*cfg.mant;
-    items.push({lbl:`Mantenimiento ${equipo==='ultraformer'?'Ultra':'Vol'} (${pct(cfg.mant)})`,val:cop(mant),cls:'warning'});
+    const mant=conDescuento?0:util*cfg.mant;
+    const mantLabel=conDescuento
+      ?`Mantenimiento ${equipo==='ultraformer'?'Ultra':'Vol'} — exento (descuento)`
+      :`Mantenimiento ${equipo==='ultraformer'?'Ultra':'Vol'} (${pct(cfg.mant)})`;
+    items.push({lbl:mantLabel,val:cop(mant),cls:'warning'});
     items.push({lbl:`Ganancia ${dueno}`,val:cop(util-mant),cls:'success'});
   } else {
     const cruzado=util*cfg.cruzado;
@@ -2405,14 +2408,14 @@ async function guardarSesion(){
     }
     desglose={costoConsumibles,pagoCosmeto_limpieza:pagoCosmeto,utilidades,comisionRef:comRef,carolina,sneider};
   } else if(eq==='ultraformer'){
-    desglose=_desgloseEquipo('ultraformer',med,utilDespRef,cfg,comisionRef);
+    desglose=_desgloseEquipo('ultraformer',med,utilDespRef,cfg,comisionRef,descPctFinal>0);
   } else if(eq==='volnewmer'){
-    desglose=_desgloseEquipo('volnewmer',med,utilDespRef,cfg,comisionRef);
+    desglose=_desgloseEquipo('volnewmer',med,utilDespRef,cfg,comisionRef,descPctFinal>0);
   } else if(eq==='volformer'){
     const utilU=costoTotal>0?(costoUltra/costoTotal)*utilDespRef:utilDespRef/2;
     const utilV=utilDespRef-utilU;
-    const dU=_desgloseEquipo('ultraformer',med,utilU,cfg,0);
-    const dV=_desgloseEquipo('volnewmer',med,utilV,cfg,0);
+    const dU=_desgloseEquipo('ultraformer',med,utilU,cfg,0,descPctFinal>0);
+    const dV=_desgloseEquipo('volnewmer',med,utilV,cfg,0,descPctFinal>0);
     desglose={comisionRef,ultra:dU,vol:dV};
   }
 
@@ -2435,11 +2438,11 @@ async function guardarSesion(){
   limpiarForm();
 }
 
-function _desgloseEquipo(equipo,med,util,cfg,comisionRef){
+function _desgloseEquipo(equipo,med,util,cfg,comisionRef,conDescuento=false){
   const dueno=equipo==='ultraformer'?'Carolina':'Sneider';
   const visitante=equipo==='ultraformer'?'Sneider':'Carolina';
   if(med===dueno){
-    const mant=util*cfg.mant;
+    const mant=conDescuento?0:util*cfg.mant;
     return {mantenimiento:mant,ganancia_dueno:util-mant,comisionRef};
   } else {
     const cruzado=util*cfg.cruzado;
