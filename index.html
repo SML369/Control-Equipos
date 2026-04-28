@@ -589,7 +589,16 @@ tr:hover td{background:#f7fafc}
           Total: <span id="zonas-total-val">$0</span>
         </div>
       </div>
-      <input type="hidden" id="f-precio">
+      <!-- Precio a cobrar -->
+      <div class="form-group form-full">
+        <label>Precio a cobrar</label>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="number" id="f-precio" min="0" step="1000"
+            style="flex:1;min-width:140px;padding:7px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;outline:none"
+            oninput="onPrecioInput()" placeholder="0">
+          <span id="precio-roi-ref" style="font-size:11px;color:#718096;white-space:nowrap"></span>
+        </div>
+      </div>
       <!-- Descuento -->
       <div class="form-group">
         <label>Descuento (%)</label>
@@ -1836,10 +1845,27 @@ function togglePaquete(){
 }
 
 function onDescuentoInput(){
-  // Si el usuario edita el descuento manualmente, desactivar solo-disparos
   if(document.getElementById('f-solo-disparos').checked){
     document.getElementById('f-solo-disparos').checked=false;
     document.getElementById('solo-disparos-info').style.display='none';
+  }
+  const pct=Math.min(100,Math.max(0,parseFloat(document.getElementById('f-descuento').value)||0));
+  document.getElementById('f-descuento').value=pct;
+  const precioBase=zonasSeleccionadas.reduce((a,z)=>a+(z.precio||0),0);
+  if(precioBase>0){
+    document.getElementById('f-precio').value=Math.round(precioBase*(1-pct/100));
+    document.getElementById('f-precio').dataset.editado='1';
+  }
+  calcular();
+}
+
+function onPrecioInput(){
+  document.getElementById('f-precio').dataset.editado='1';
+  const precioIngresado=parseInt(document.getElementById('f-precio').value)||0;
+  const precioBase=zonasSeleccionadas.reduce((a,z)=>a+(z.precio||0),0);
+  if(precioBase>0&&precioIngresado>=0){
+    const desc=Math.max(0,Math.round((precioBase-precioIngresado)/precioBase*100));
+    document.getElementById('f-descuento').value=desc;
   }
   calcular();
 }
@@ -1948,8 +1974,11 @@ function quitarZona(idx){
 function updateZonaPrecio(idx,valor){
   zonasSeleccionadas[idx].precio=parseInt(valor)||0;
   const total=zonasSeleccionadas.reduce((a,z)=>a+z.precio,0);
-  document.getElementById('f-precio').value=total;
   document.getElementById('zonas-total-val').textContent=cop(total);
+  const fp=document.getElementById('f-precio');
+  if(!fp.dataset.editado) fp.value=total;
+  const ref=document.getElementById('precio-roi-ref');
+  if(ref) ref.textContent=total>0?`Precio ROI: ${cop(total)}`:'';
   calcular();
 }
 
@@ -1963,7 +1992,10 @@ function renderZonas(){
     return;
   }
   const total=zonasSeleccionadas.reduce((a,z)=>a+z.precio,0);
-  document.getElementById('f-precio').value=total;
+  const fp2=document.getElementById('f-precio');
+  if(!fp2.dataset.editado) fp2.value=total;
+  const ref2=document.getElementById('precio-roi-ref');
+  if(ref2) ref2.textContent=total>0?`Precio ROI: ${cop(total)}`:'';
   lista.innerHTML=zonasSeleccionadas.map((z,idx)=>`
     <div style="display:flex;align-items:center;gap:7px;padding:7px 9px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:7px;margin-bottom:5px">
       <span style="flex:1;font-size:12px;color:#2d3748;font-weight:600">${z.nombre}</span>
@@ -2431,6 +2463,10 @@ function limpiarForm(){
   document.getElementById('campo-cosmetologa').style.display='none';
   document.getElementById('autocomplete-list').innerHTML='';
   ultraEntradas=[]; volEntradas=[];
+  const fp3=document.getElementById('f-precio');
+  if(fp3){ fp3.value=''; fp3.dataset.editado=''; }
+  const ref3=document.getElementById('precio-roi-ref');
+  if(ref3) ref3.textContent='';
   setFechaHoy();
 }
 
