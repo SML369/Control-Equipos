@@ -2214,15 +2214,16 @@ function calcular(){
   // Solo disparos: precio final = costo total disparos, descuento calculado automáticamente
   const soloDisparos=document.getElementById('f-solo-disparos')?.checked&&
     (eq==='ultraformer'||eq==='volnewmer'||eq==='volformer');
+  const precioROI=zonasSeleccionadas.reduce((a,z)=>a+(z.precio||0),0);
   let precioFinal, descPct;
   if(soloDisparos&&costoTotal>0){
     precioFinal=costoTotal;
-    descPct=precioInput>0?(precioInput-costoTotal)/precioInput:0;
-    // Mostrar el descuento calculado en el campo para trazabilidad
+    descPct=precioROI>0?(precioROI-costoTotal)/precioROI:0;
     document.getElementById('f-descuento').value=Math.round(descPct*100);
   } else {
-    descPct=(parseFloat(document.getElementById('f-descuento').value)||0)/100;
-    precioFinal=Math.round(precioInput*(1-descPct));
+    // El precio ingresado ES el precio final — sin doble descuento
+    precioFinal=precioInput;
+    descPct=precioROI>0?Math.max(0,(precioROI-precioInput)/precioROI):0;
   }
   const utilBruta=precioFinal-costoTotal;
   const cfg=getCfg();
@@ -2236,13 +2237,13 @@ function calcular(){
   const utilDespRef=utilBruta-comisionRef;
 
   let items=[
-    {lbl:'Precio bruto',val:cop(precioInput),cls:''},
+    {lbl:'Precio ROI',val:cop(precioROI),cls:''},
   ];
-  if(descPct>0){
+  if(precioROI>precioFinal){
     const descLabel=soloDisparos?'Solo costo disparos (familiar/cortesía)':`Descuento (${Math.round(descPct*100)}%)`;
-    items.push({lbl:descLabel,val:`-${cop(precioInput-precioFinal)}`,cls:'danger'});
+    items.push({lbl:descLabel,val:`-${cop(precioROI-precioFinal)}`,cls:'danger'});
   }
-  items.push({lbl:'Precio final',val:cop(precioFinal),cls:'highlight'});
+  items.push({lbl:'Precio cobrado',val:cop(precioFinal),cls:'highlight'});
   if(costoUltra>0) items.push({lbl:`Disparos Ultraformer (${ultraTotal}×$700)`,val:cop(costoUltra),cls:'warning'});
   if(costoVol>0) items.push({lbl:`Disparos Volnewmer`,val:cop(costoVol),cls:'warning'});
   items.push({lbl:'Utilidad bruta',val:cop(utilBruta),cls:''});
@@ -2376,9 +2377,10 @@ async function guardarSesion(){
   }
 
   const costoTotal=costoUltra+costoVol;
-  // Precio final: si es solo-disparos, precio = costo total disparos
-  const precioFinal=soloDisparos&&costoTotal>0 ? costoTotal : Math.round(precioInput*(1-descPct));
-  const descPctFinal=precioInput>0?(precioInput-precioFinal)/precioInput:descPct;
+  // El precio ingresado ES el precio final — sin doble descuento
+  const precioFinal=soloDisparos&&costoTotal>0 ? costoTotal : precioInput;
+  const precioROI=zonasSeleccionadas.reduce((a,z)=>a+(z.precio||0),0);
+  const descPctFinal=precioROI>0?Math.max(0,(precioROI-precioFinal)/precioROI):0;
   const utilBruta=precioFinal-costoTotal;
   const cfg=getCfg();
   const refPct=(refTipo==='cosmetologa')?0.03:0;
