@@ -1428,10 +1428,11 @@ async function sbGet(tabla){
   return r.ok ? await r.json() : [];
 }
 async function sbUpsert(tabla, row){
-  await fetch(`${SUPA_URL}/rest/v1/${tabla}`, {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${tabla}`, {
     method:'POST', headers:{...getH(),'Prefer':'resolution=merge-duplicates'},
     body: JSON.stringify(row)
   });
+  if(!res.ok) throw new Error(`Error al guardar en ${tabla}: ${res.status}`);
 }
 async function sbDelete(tabla, col, val){
   await fetch(`${SUPA_URL}/rest/v1/${tabla}?${col}=eq.${val}`, {method:'DELETE', headers:getH()});
@@ -1543,8 +1544,8 @@ async function setSesiones(arr){
   // Sincronizar solo la sesión nueva o eliminada se maneja por guardarSesion/confirmarDelete
 }
 async function agregarSesionDB(sesion){
-  _cache.sesiones = [...(_cache.sesiones||[]), sesion];
   await sbUpsert('sesiones', {id: sesion.id, data: sesion});
+  _cache.sesiones = [...(_cache.sesiones||[]), sesion];
 }
 async function eliminarSesionDB(id){
   _cache.sesiones = (_cache.sesiones||[]).filter(s=>s.id!==id);
@@ -2424,7 +2425,7 @@ async function guardarSesion(){
   mostrarCargando(true);
   const sesiones=getSesiones();
   const nuevaSesion = {
-    id:Date.now(), paciente:pac, fecha, hora, equipo:eq, zona, zonas_json:JSON.stringify(zonasSeleccionadas), zonaVol, medico:med, cosmetologa,
+    id:`${Date.now()}_${Math.random().toString(36).substr(2,6)}`, paciente:pac, fecha, hora, equipo:eq, zona, zonas_json:JSON.stringify(zonasSeleccionadas), zonaVol, medico:med, cosmetologa,
     esPaquete, nsesion:esPaquete?nsesion:1, totalSesiones:esPaquete?totalSesiones:1, notasPaquete, cuenta, notas,
     precio:precioInput, precioFinal, descPct:descPctFinal, descRazon, soloDisparos,
     costoUltra, costoVol, costoTotal,
@@ -2434,10 +2435,15 @@ async function guardarSesion(){
     desglose, cfg:{...cfg},
     registradoPor:currentUser||'—'
   };
-  await agregarSesionDB(nuevaSesion);
-  mostrarCargando(false);
-  alert('Sesión guardada correctamente.');
-  limpiarForm();
+  try {
+    await agregarSesionDB(nuevaSesion);
+    mostrarCargando(false);
+    alert('Sesión guardada correctamente.');
+    limpiarForm();
+  } catch(err) {
+    mostrarCargando(false);
+    alert('⚠️ Error al guardar la sesión. Verifica tu conexión o inicia sesión nuevamente.\n\nLos datos NO fueron guardados. No cierres esta ventana.');
+  }
 }
 
 function _desgloseEquipo(equipo,med,util,cfg,comisionRef,conDescuento=false){
