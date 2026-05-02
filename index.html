@@ -3163,7 +3163,7 @@ function exportarExcel(){
   const wb=XLSX.utils.book_new();
 
   // ── Hoja 1: Desglose financiero por sesión ──
-  const desglose=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Zona / Tipo limpieza','Precio final','Consumibles','Pago Cosmetóloga','Carolina','Sneider','Comisión referido','Referido','Cuenta','Notas']];
+  const desglose=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Zona / Tipo limpieza','Precio final','Consumibles','Pago Cosmetóloga','Carolina','Sneider','Comisión referido','Referido','Cuenta','Notas','Liquidado','Fecha liquidación']];
   let totPrecio=0,totCons=0,totCosmeto=0,totCar=0,totSne=0,totRef=0;
   sesiones.forEach(s=>{
     const d=s.desglose||{};
@@ -3189,7 +3189,8 @@ function exportarExcel(){
     desglose.push([
       s.fecha||'',s.hora||'',s.paciente||'',s.equipo||'',s.medico||'',
       s.cosmetologa||'',s.zona||'',precio,cons,cosmeto,car,sne,
-      s.comisionRef||0,s.referido||'',s.cuenta||'',s.notas||''
+      s.comisionRef||0,s.referido||'',s.cuenta||'',s.notas||'',
+      s.liquidado?'Sí':'No',s.fechaLiquidacion||''
     ]);
   });
   desglose.push([]);
