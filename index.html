@@ -2883,6 +2883,7 @@ async function liqMarcarSeleccionados(tipo){
       const idx=_cache.sesiones.findIndex(x=>x.id===id);
       if(idx>=0) _cache.sesiones[idx]=updated;
     }
+    document.getElementById('liq-estado').value='todas';
     renderLiquidaciones();
   }catch(err){alert('Error al actualizar: '+err.message);}
   mostrarCargando(false);
