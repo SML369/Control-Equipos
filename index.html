@@ -524,6 +524,7 @@ tr:hover td{background:#f7fafc}
   <div class="nav-item" data-page="financiero" onclick="goPage(this)">Resumen financiero</div>
   <div class="nav-item" data-page="cotizaciones" onclick="goPage(this)">Cotizaciones</div>
   <div class="nav-item" data-page="tarifario" onclick="goPage(this)">Tarifario</div>
+  <div class="nav-item" data-page="liquidaciones" onclick="goPage(this)">Liquidaciones</div>
   <div class="nav-section">Inventario</div>
   <div class="nav-item" data-page="inv-ultra" onclick="goPage(this)">Transductores Ultraformer</div>
   <div class="nav-item" data-page="inv-vol" onclick="goPage(this)">Transductores Volnewmer</div>
@@ -782,6 +783,59 @@ tr:hover td{background:#f7fafc}
 </div>
 
 <!-- COTIZACIONES -->
+<div class="page" id="page-liquidaciones">
+  <div class="page-header">
+    <div><h1>Liquidaciones</h1><p>Pagos pendientes a cosmetólogas y por mantenimiento de equipos</p></div>
+  </div>
+  <div class="card" style="padding:12px 16px;margin-bottom:10px">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:12px;color:#718096">Desde</label>
+      <input type="date" id="liq-desde" oninput="renderLiquidaciones()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none">
+      <label style="font-size:12px;color:#718096">Hasta</label>
+      <input type="date" id="liq-hasta" oninput="renderLiquidaciones()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;outline:none">
+      <button class="btn btn-outline btn-sm" onclick="liqSetPeriodo('quincena')">Esta quincena</button>
+      <button class="btn btn-outline btn-sm" onclick="liqSetPeriodo('mes')">Este mes</button>
+      <select id="liq-medico" onchange="renderLiquidaciones()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
+        <option value="">Todos los médicos</option>
+        <option value="Carolina">Carolina</option>
+        <option value="Sneider">Sneider</option>
+      </select>
+      <select id="liq-estado" onchange="renderLiquidaciones()" style="padding:5px 9px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;background:white;outline:none">
+        <option value="pendiente">Pendientes</option>
+        <option value="liquidado">Liquidadas</option>
+        <option value="todas">Todas</option>
+      </select>
+    </div>
+  </div>
+  <div id="liq-resumen" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="margin:0;font-size:14px;color:#2d3748">💆 Pagos a cosmetólogas — Aquapure</h3>
+      <button class="btn btn-primary btn-sm" onclick="liqMarcarSeleccionados('cosmeto')">✓ Liquidar seleccionadas</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th><input type="checkbox" id="liq-check-all-cosmeto" onchange="liqSelectAll('cosmeto',this.checked)"></th>
+        <th>Fecha</th><th>Paciente</th><th>Cosmetóloga</th><th>Médico</th><th>Monto</th><th>Estado</th>
+      </tr></thead>
+      <tbody id="liq-tbody-cosmeto"></tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h3 style="margin:0;font-size:14px;color:#2d3748">🔧 Mantenimiento equipos — Ultraformer / Volnewmer</h3>
+      <button class="btn btn-primary btn-sm" onclick="liqMarcarSeleccionados('mant')">✓ Liquidar seleccionadas</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th><input type="checkbox" id="liq-check-all-mant" onchange="liqSelectAll('mant',this.checked)"></th>
+        <th>Fecha</th><th>Paciente</th><th>Equipo</th><th>Médico</th><th>Monto</th><th>Estado</th>
+      </tr></thead>
+      <tbody id="liq-tbody-mant"></tbody>
+    </table></div>
+  </div>
+</div>
+
 <div class="page" id="page-cotizaciones">
   <div class="page-header">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
@@ -1835,6 +1889,7 @@ function goPage(el){
   if(p==='tarifario') renderTarifario();
   if(p==='agenda-aquapure'){ poblarFiltroCosmeto(); renderAgendaAqua(); }
   if(p==='config'){ renderReferidosPreview(); renderListaCosmetologasConfig(); }
+  if(p==='liquidaciones') renderLiquidaciones();
 }
 
 // ===================== FORM =====================
@@ -2737,6 +2792,102 @@ function renderPacientes(){
 }
 
 // ===================== FINANCIERO =====================
+// ===================== LIQUIDACIONES =====================
+function liqSetPeriodo(tipo){
+  const hoy=new Date();
+  const d=hoy.getDate();
+  const y=hoy.getFullYear();
+  const m=String(hoy.getMonth()+1).padStart(2,'0');
+  if(tipo==='quincena'){
+    if(d<=15){
+      document.getElementById('liq-desde').value=`${y}-${m}-01`;
+      document.getElementById('liq-hasta').value=`${y}-${m}-15`;
+    } else {
+      const ult=new Date(y,hoy.getMonth()+1,0).getDate();
+      document.getElementById('liq-desde').value=`${y}-${m}-16`;
+      document.getElementById('liq-hasta').value=`${y}-${m}-${ult}`;
+    }
+  } else {
+    const ult=new Date(y,hoy.getMonth()+1,0).getDate();
+    document.getElementById('liq-desde').value=`${y}-${m}-01`;
+    document.getElementById('liq-hasta').value=`${y}-${m}-${ult}`;
+  }
+  renderLiquidaciones();
+}
+
+function renderLiquidaciones(){
+  const desde=document.getElementById('liq-desde').value||'';
+  const hasta=document.getElementById('liq-hasta').value||'';
+  const medFil=document.getElementById('liq-medico').value||'';
+  const estadoFil=document.getElementById('liq-estado').value||'pendiente';
+  let sesiones=getSesiones().filter(s=>s.estado!=='Cancelada');
+  if(desde) sesiones=sesiones.filter(s=>(s.fecha||'')>=desde);
+  if(hasta) sesiones=sesiones.filter(s=>(s.fecha||'')<=hasta);
+  if(medFil) sesiones=sesiones.filter(s=>s.medico===medFil);
+  if(estadoFil==='pendiente') sesiones=sesiones.filter(s=>!s.liquidado);
+  else if(estadoFil==='liquidado') sesiones=sesiones.filter(s=>s.liquidado);
+  const aquaSes=sesiones.filter(s=>s.equipo==='aquapure'&&(s.desglose?.pagoCosmeto_limpieza||0)>0);
+  const mantSes=sesiones.filter(s=>['ultraformer','volnewmer','volformer'].includes(s.equipo));
+  const totCosmeto=getSesiones().filter(s=>s.equipo==='aquapure'&&!s.liquidado).reduce((a,s)=>a+(s.desglose?.pagoCosmeto_limpieza||0),0);
+  const totMant=getSesiones().filter(s=>['ultraformer','volnewmer','volformer'].includes(s.equipo)&&!s.liquidado).reduce((a,s)=>{
+    const d=s.desglose||{};
+    return a+(d.mantenimiento||0)+(d.ultra?.mantenimiento||0)+(d.vol?.mantenimiento||0);
+  },0);
+  document.getElementById('liq-resumen').innerHTML=`
+    <div class="stat-card"><div class="number" style="color:#e53e3e;font-size:14px">${cop(totCosmeto)}</div><div class="label">Pendiente cosmetólogas (total)</div></div>
+    <div class="stat-card"><div class="number" style="color:#d69e2e;font-size:14px">${cop(totMant)}</div><div class="label">Pendiente mantenimiento (total)</div></div>`;
+  document.getElementById('liq-tbody-cosmeto').innerHTML=aquaSes.length
+    ?aquaSes.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(s=>{
+        const monto=s.desglose?.pagoCosmeto_limpieza||0;
+        const liq=s.liquidado;
+        return `<tr style="${liq?'opacity:0.5':''}">
+          <td><input type="checkbox" class="liq-chk-cosmeto" data-id="${s.id}"${liq?' disabled':''}></td>
+          <td>${s.fecha||''}</td><td>${s.paciente||''}</td><td>${s.cosmetologa||'—'}</td><td>${s.medico||''}</td>
+          <td style="font-weight:700;color:#e53e3e">${cop(monto)}</td>
+          <td>${liq?`<span style="color:#38a169;font-weight:600">✓ Liquidado${s.fechaLiquidacion?' ('+s.fechaLiquidacion+')':''}</span>`:'<span style="color:#e53e3e">Pendiente</span>'}</td>
+        </tr>`;
+      }).join('')
+    :'<tr><td colspan="7" style="text-align:center;color:#718096;padding:20px">Sin sesiones para el período seleccionado</td></tr>';
+  document.getElementById('liq-tbody-mant').innerHTML=mantSes.length
+    ?mantSes.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(s=>{
+        const d=s.desglose||{};
+        const monto=(d.mantenimiento||0)+(d.ultra?.mantenimiento||0)+(d.vol?.mantenimiento||0);
+        const liq=s.liquidado;
+        return `<tr style="${liq?'opacity:0.5':''}">
+          <td><input type="checkbox" class="liq-chk-mant" data-id="${s.id}"${liq?' disabled':''}></td>
+          <td>${s.fecha||''}</td><td>${s.paciente||''}</td>
+          <td style="text-transform:capitalize">${s.equipo||''}</td><td>${s.medico||''}</td>
+          <td style="font-weight:700;color:#d69e2e">${cop(monto)}</td>
+          <td>${liq?`<span style="color:#38a169;font-weight:600">✓ Liquidado${s.fechaLiquidacion?' ('+s.fechaLiquidacion+')':''}</span>`:'<span style="color:#e53e3e">Pendiente</span>'}</td>
+        </tr>`;
+      }).join('')
+    :'<tr><td colspan="7" style="text-align:center;color:#718096;padding:20px">Sin sesiones para el período seleccionado</td></tr>';
+}
+
+function liqSelectAll(tipo,checked){
+  document.querySelectorAll(`.liq-chk-${tipo}`).forEach(c=>{if(!c.disabled)c.checked=checked;});
+}
+
+async function liqMarcarSeleccionados(tipo){
+  const ids=[...document.querySelectorAll(`.liq-chk-${tipo}:checked`)].map(c=>c.dataset.id);
+  if(!ids.length){alert('Selecciona al menos una sesión.');return;}
+  if(!confirm(`¿Marcar ${ids.length} sesión(es) como liquidadas?`)) return;
+  mostrarCargando(true);
+  const hoy=new Date().toISOString().split('T')[0];
+  try{
+    for(const id of ids){
+      const s=getSesiones().find(x=>x.id===id);
+      if(!s) continue;
+      const updated={...s,liquidado:true,fechaLiquidacion:hoy};
+      await sbUpsert('sesiones',{id,data:updated});
+      const idx=_cache.sesiones.findIndex(x=>x.id===id);
+      if(idx>=0) _cache.sesiones[idx]=updated;
+    }
+    renderLiquidaciones();
+  }catch(err){alert('Error al actualizar: '+err.message);}
+  mostrarCargando(false);
+}
+
 function limpiarFiltroFin(){
   document.getElementById('fin-desde').value='';
   document.getElementById('fin-hasta').value='';
