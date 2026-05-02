@@ -2876,11 +2876,11 @@ async function liqMarcarSeleccionados(tipo){
   const hoy=new Date().toISOString().split('T')[0];
   try{
     for(const id of ids){
-      const s=getSesiones().find(x=>x.id===id);
+      const s=getSesiones().find(x=>String(x.id)===String(id));
       if(!s) continue;
       const updated={...s,liquidado:true,fechaLiquidacion:hoy};
-      await sbUpsert('sesiones',{id,data:updated});
-      const idx=_cache.sesiones.findIndex(x=>x.id===id);
+      await sbUpsert('sesiones',{id:s.id,data:updated});
+      const idx=_cache.sesiones.findIndex(x=>String(x.id)===String(id));
       if(idx>=0) _cache.sesiones[idx]=updated;
     }
     document.getElementById('liq-estado').value='todas';
