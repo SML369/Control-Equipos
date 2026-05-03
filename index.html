@@ -1248,7 +1248,7 @@ const _PROTO_FALLBACK = [
   {id:'vf_full_face_sin_papada',equipo:'volformer',nombre:'Full face sin papada',precio:4962583,precio_doc:null,disparos_ref:540,disparos_vol:{'0':200,'3':300,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
   {id:'vf_full_face_con_papada',equipo:'volformer',nombre:'Full face con papada',precio:7046833,precio_doc:null,disparos_ref:940,disparos_vol:{'0':200,'3':400,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
   // AQUAPURE
-  {id:'a_manual',equipo:'aquapure',nombre:'Limpieza manual',precio:250000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:60000,activo:true},
+  {id:'a_manual',equipo:'aquapure',nombre:'Limpieza manual',precio:250000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:95000,pago_cosmeto:60000,activo:true},
   {id:'a_aquapure',equipo:'aquapure',nombre:'Limpieza con Aquapure',precio:285000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:60000,activo:true},
   {id:'a_masaje',equipo:'aquapure',nombre:'Limpieza Aquapure + masaje',precio:325000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:76000,activo:true},
   {id:'a_pecho',equipo:'aquapure',nombre:'Limpieza pecho y espalda (microdermoabrasión)',precio:300000,precio_doc:null,disparos_ref:null,disparos_vol:null,costo_consumibles:125000,pago_cosmeto:70000,activo:true},
@@ -1521,8 +1521,10 @@ async function cargarDatos(){
     _cache.referidos = refRow ? refRow.valor : null;
     if(cosmetoRow && Array.isArray(cosmetoRow.valor)) listaCosmetologas = cosmetoRow.valor;
     // Si Supabase está vacío o tiene protocolos Aquapure desactualizados, usar fallback inmediatamente y sincronizar
-    const aquaDesact = protos.some(p=>p.equipo==='aquapure' && p.costo_consumibles !== 125000)
-      || protos.some(p=>p.id==='a_manual' && p.pago_cosmeto !== 60000);
+    const aquaDesact = _PROTO_FALLBACK.filter(p=>p.equipo==='aquapure').some(fp=>{
+      const sp=protos.find(p=>p.id===fp.id);
+      return !sp||sp.costo_consumibles!==fp.costo_consumibles||sp.pago_cosmeto!==fp.pago_cosmeto;
+    });
     _protosDB = (!protos.length || aquaDesact) ? _PROTO_FALLBACK : protos;
     _cargarProtocolos(_protosDB);
     if(!protos.length || aquaDesact){
