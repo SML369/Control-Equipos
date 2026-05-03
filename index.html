@@ -1791,7 +1791,10 @@ function renderInvBase(equipo){
           <td><div style="display:flex;align-items:center;gap:6px;min-width:100px"><div style="flex:1"><div class="progress-bar" style="height:7px"><div class="progress-fill" style="width:${pct2}%;background:${barC}"></div></div></div><span style="font-size:10px;font-weight:700;color:${txtC}">${pct2}%</span></div></td>
           <td style="text-align:right">${usado.toLocaleString('es-CO')}${costoD}</td>
           <td style="text-align:right;font-weight:700;color:${txtC}">${rest.toLocaleString('es-CO')}</td>
-          <td>${!t.retirado?`<button class="btn btn-danger btn-sm" onclick="retirarTrans('${equipo}','${t.id}')">Retirar</button>`:`<button class="btn btn-outline btn-sm" onclick="restaurarTrans('${equipo}','${t.id}')">Restaurar</button>`}</td>
+          <td style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="ajustarDisparos('${equipo}','${t.id}',${usado})">Ajustar</button>
+            ${!t.retirado?`<button class="btn btn-danger btn-sm" onclick="retirarTrans('${equipo}','${t.id}')">Retirar</button>`:`<button class="btn btn-outline btn-sm" onclick="restaurarTrans('${equipo}','${t.id}')">Restaurar</button>`}
+          </td>
         </tr>`;
       }).join('');
       return `<div style="margin-bottom:16px">
@@ -1812,6 +1815,25 @@ function renderInvBase(equipo){
 
 function renderInvUltra(){renderInvBase('ultra');}
 function renderInvVol(){renderInvBase('vol');}
+
+async function ajustarDisparos(equipo,id,actual){
+  const total=getTotalDisparos(equipo, getInventario(equipo).find(t=>t.id===id)?.medida||'');
+  const val=prompt(`Disparos usados actuales: ${actual.toLocaleString('es-CO')}\nTotal del transductor: ${total.toLocaleString('es-CO')}\n\nIngresa el nuevo valor de disparos USADOS:`,''+actual);
+  if(val===null) return;
+  const nuevo=parseInt(val);
+  if(isNaN(nuevo)||nuevo<0){alert('Valor inválido.');return;}
+  if(nuevo>total){alert(`No puede superar el total de ${total.toLocaleString('es-CO')} disparos.`);return;}
+  const inv=getInventario(equipo);
+  const t=inv.find(x=>x.id===id);
+  if(!t) return;
+  t.disparosUsados=nuevo;
+  mostrarCargando(true);
+  try{
+    await setInventario(equipo,inv);
+    if(equipo==='ultra') renderInvUltra(); else renderInvVol();
+  }catch(err){alert('Error al guardar: '+err.message);}
+  mostrarCargando(false);
+}
 
 async function retirarTrans(equipo,id){
   if(!confirm('¿Marcar como retirado?'))return;
