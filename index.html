@@ -2393,9 +2393,8 @@ async function guardarSesion(){
   if(!zonasSeleccionadas.length){alert('Agrega al menos una zona / protocolo.');return;}
   if(!precioInput){alert('Ingresa el precio de la sesión.');return;}
 
-  // Validar y descontar transductores Ultraformer
-  let transUltra=[];
-  let costoUltra=0;
+  // Validar transductores y calcular costos (sin descontar inventario todavía)
+  let transUltra=[], costoUltra=0, _invUltra=null;
   if(eq==='ultraformer'||eq==='volformer'){
     const validas=ultraEntradas.filter(e=>e.transId&&parseInt(e.disparos)>0);
     if(!validas.length){alert('Agrega al menos un transductor Ultraformer con disparos.');return;}
@@ -2409,12 +2408,10 @@ async function guardarSesion(){
       costoUltra+=d*700;
       transUltra.push({transId:e.transId,disparos:d});
     });
-    await setInventario('ultra',inv);
+    _invUltra=inv; // se guarda después de confirmar el guardado
   }
 
-  // Validar y descontar transductores Volnewmer
-  let transVol=[];
-  let costoVol=0;
+  let transVol=[], costoVol=0, _invVol=null;
   if(eq==='volnewmer'||eq==='volformer'){
     const validas=volEntradas.filter(e=>e.transId&&parseInt(e.disparos)>0);
     if(!validas.length){alert('Agrega al menos un transductor Volnewmer con disparos.');return;}
@@ -2429,7 +2426,7 @@ async function guardarSesion(){
       costoVol+=d*costoD;
       transVol.push({transId:e.transId,disparos:d,costoDisparo:costoD});
     });
-    await setInventario('vol',inv);
+    _invVol=inv;
   }
 
   const costoTotal=costoUltra+costoVol;
@@ -2492,6 +2489,9 @@ async function guardarSesion(){
   };
   try {
     await agregarSesionDB(nuevaSesion);
+    // Solo descontar inventario si la sesión se guardó exitosamente
+    if(_invUltra) await setInventario('ultra',_invUltra);
+    if(_invVol)   await setInventario('vol',_invVol);
     mostrarCargando(false);
     alert('Sesión guardada correctamente.');
     limpiarForm();
