@@ -2480,7 +2480,7 @@ async function guardarSesion(){
   mostrarCargando(true);
   const sesiones=getSesiones();
   const nuevaSesion = {
-    id:`${Date.now()}_${Math.random().toString(36).substr(2,6)}`, paciente:pac, fecha, hora, equipo:eq, zona, zonas_json:JSON.stringify(zonasSeleccionadas), zonaVol, medico:med, cosmetologa,
+    id:Date.now()*1000+Math.floor(Math.random()*1000), paciente:pac, fecha, hora, equipo:eq, zona, zonas_json:JSON.stringify(zonasSeleccionadas), zonaVol, medico:med, cosmetologa,
     esPaquete, nsesion:esPaquete?nsesion:1, totalSesiones:esPaquete?totalSesiones:1, notasPaquete, cuenta, notas,
     precio:precioInput, precioFinal, descPct:descPctFinal, descRazon, soloDisparos,
     costoUltra, costoVol, costoTotal,
