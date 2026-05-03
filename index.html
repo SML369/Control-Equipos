@@ -2414,6 +2414,7 @@ async function guardarSesion(){
   if(!pac||!fecha||!eq||!med){alert('Completa los campos obligatorios: paciente, fecha, equipo y médico.');return;}
   if(!zonasSeleccionadas.length){alert('Agrega al menos una zona / protocolo.');return;}
   if(!precioInput){alert('Ingresa el precio de la sesión.');return;}
+  if(!cuenta){alert('Selecciona la cuenta a la que se realizó el pago.');return;}
 
   // Validar transductores y calcular costos (sin descontar inventario todavía)
   let transUltra=[], costoUltra=0, _invUltra=null;
