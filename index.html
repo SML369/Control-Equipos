@@ -821,7 +821,7 @@ tr:hover td{background:#f7fafc}
       <tbody id="liq-tbody-cosmeto"></tbody>
     </table></div>
   </div>
-  <div class="card">
+  <div class="card" id="liq-card-mant">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <h3 style="margin:0;font-size:14px;color:#2d3748">🔧 Mantenimiento equipos — Ultraformer / Volnewmer</h3>
       <button class="btn btn-primary btn-sm" onclick="liqMarcarSeleccionados('mant')">✓ Liquidar seleccionadas</button>
@@ -2826,25 +2826,32 @@ function renderLiquidaciones(){
   if(medFil) sesiones=sesiones.filter(s=>s.medico===medFil);
   if(estadoFil==='pendiente') sesiones=sesiones.filter(s=>!s.liquidado);
   else if(estadoFil==='liquidado') sesiones=sesiones.filter(s=>s.liquidado);
-  const aquaSes=sesiones.filter(s=>s.equipo==='aquapure'&&(s.desglose?.pagoCosmeto_limpieza||0)>0);
+  let aquaSes=sesiones.filter(s=>s.equipo==='aquapure'&&(s.desglose?.pagoCosmeto_limpieza||0)>0);
+  if(esCosmetologa) aquaSes=aquaSes.filter(s=>s.cosmetologa===currentCosmetologa);
   const mantSes=sesiones.filter(s=>['ultraformer','volnewmer','volformer'].includes(s.equipo));
-  const totCosmeto=getSesiones().filter(s=>s.equipo==='aquapure'&&!s.liquidado).reduce((a,s)=>a+(s.desglose?.pagoCosmeto_limpieza||0),0);
-  const totMant=getSesiones().filter(s=>['ultraformer','volnewmer','volformer'].includes(s.equipo)&&!s.liquidado).reduce((a,s)=>{
+  const cardMant=document.getElementById('liq-card-mant');
+  if(cardMant) cardMant.style.display=esCosmetologa?'none':'';
+  const totCosmeto=getSesiones().filter(s=>s.equipo==='aquapure'&&!s.liquidado&&(!esCosmetologa||s.cosmetologa===currentCosmetologa)).reduce((a,s)=>a+(s.desglose?.pagoCosmeto_limpieza||0),0);
+  const totMant=esCosmetologa?0:getSesiones().filter(s=>['ultraformer','volnewmer','volformer'].includes(s.equipo)&&!s.liquidado).reduce((a,s)=>{
     const d=s.desglose||{};
     return a+(d.mantenimiento||0)+(d.ultra?.mantenimiento||0)+(d.vol?.mantenimiento||0);
   },0);
   document.getElementById('liq-resumen').innerHTML=`
-    <div class="stat-card"><div class="number" style="color:#e53e3e;font-size:14px">${cop(totCosmeto)}</div><div class="label">Pendiente cosmetólogas (total)</div></div>
-    <div class="stat-card"><div class="number" style="color:#d69e2e;font-size:14px">${cop(totMant)}</div><div class="label">Pendiente mantenimiento (total)</div></div>`;
+    <div class="stat-card"><div class="number" style="color:#e53e3e;font-size:14px">${cop(totCosmeto)}</div><div class="label">Pendiente cosmetólogas${esCosmetologa?'':' (total)'}</div></div>
+    ${esCosmetologa?'':'<div class="stat-card"><div class="number" style="color:#d69e2e;font-size:14px">'+cop(totMant)+'</div><div class="label">Pendiente mantenimiento (total)</div></div>'}`;
   document.getElementById('liq-tbody-cosmeto').innerHTML=aquaSes.length
     ?aquaSes.sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).map(s=>{
         const monto=s.desglose?.pagoCosmeto_limpieza||0;
         const liq=s.liquidado;
-        return `<tr style="${liq?'opacity:0.5':''}">
+        const quien=s.liquidadoPor?` · por ${s.liquidadoPor}`:'';
+        return `<tr style="${liq?'opacity:0.6':''}">
           <td><input type="checkbox" class="liq-chk-cosmeto" data-id="${s.id}"${liq?' disabled':''}></td>
           <td>${s.fecha||''}</td><td>${s.paciente||''}</td><td>${s.cosmetologa||'—'}</td><td>${s.medico||''}</td>
           <td style="font-weight:700;color:#e53e3e">${cop(monto)}</td>
-          <td>${liq?`<span style="color:#38a169;font-weight:600">✓ Liquidado${s.fechaLiquidacion?' ('+s.fechaLiquidacion+')':''}</span>`:'<span style="color:#e53e3e">Pendiente</span>'}</td>
+          <td>${liq
+            ?`<span style="color:#38a169;font-weight:600">✓ ${s.fechaLiquidacion||''}${quien}</span>
+               <button class="btn btn-outline btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="liqDesmarcar('${s.id}')">Desmarcar</button>`
+            :'<span style="color:#e53e3e">Pendiente</span>'}</td>
         </tr>`;
       }).join('')
     :'<tr><td colspan="7" style="text-align:center;color:#718096;padding:20px">Sin sesiones para el período seleccionado</td></tr>';
@@ -2853,15 +2860,36 @@ function renderLiquidaciones(){
         const d=s.desglose||{};
         const monto=(d.mantenimiento||0)+(d.ultra?.mantenimiento||0)+(d.vol?.mantenimiento||0);
         const liq=s.liquidado;
-        return `<tr style="${liq?'opacity:0.5':''}">
+        const quien=s.liquidadoPor?` · por ${s.liquidadoPor}`:'';
+        return `<tr style="${liq?'opacity:0.6':''}">
           <td><input type="checkbox" class="liq-chk-mant" data-id="${s.id}"${liq?' disabled':''}></td>
           <td>${s.fecha||''}</td><td>${s.paciente||''}</td>
           <td style="text-transform:capitalize">${s.equipo||''}</td><td>${s.medico||''}</td>
           <td style="font-weight:700;color:#d69e2e">${cop(monto)}</td>
-          <td>${liq?`<span style="color:#38a169;font-weight:600">✓ Liquidado${s.fechaLiquidacion?' ('+s.fechaLiquidacion+')':''}</span>`:'<span style="color:#e53e3e">Pendiente</span>'}</td>
+          <td>${liq
+            ?`<span style="color:#38a169;font-weight:600">✓ ${s.fechaLiquidacion||''}${quien}</span>
+               <button class="btn btn-outline btn-sm" style="padding:2px 7px;font-size:10px;margin-left:6px" onclick="liqDesmarcar('${s.id}')">Desmarcar</button>`
+            :'<span style="color:#e53e3e">Pendiente</span>'}</td>
         </tr>`;
       }).join('')
     :'<tr><td colspan="7" style="text-align:center;color:#718096;padding:20px">Sin sesiones para el período seleccionado</td></tr>';
+}
+
+async function liqDesmarcar(id){
+  if(!confirm('¿Desmarcar esta sesión como liquidada?')) return;
+  const s=getSesiones().find(x=>String(x.id)===String(id));
+  if(!s) return;
+  const quien=currentCosmetologa||currentUser||'—';
+  const updated={...s,liquidado:false,fechaLiquidacion:null,liquidadoPor:null,
+    desLiquidadoPor:quien,fechaDesLiquidacion:new Date().toISOString().split('T')[0]};
+  mostrarCargando(true);
+  try{
+    await sbUpsert('sesiones',{id:s.id,data:updated});
+    const idx=_cache.sesiones.findIndex(x=>String(x.id)===String(id));
+    if(idx>=0) _cache.sesiones[idx]=updated;
+    renderLiquidaciones();
+  }catch(err){alert('Error: '+err.message);}
+  mostrarCargando(false);
 }
 
 function liqSelectAll(tipo,checked){
@@ -2878,7 +2906,8 @@ async function liqMarcarSeleccionados(tipo){
     for(const id of ids){
       const s=getSesiones().find(x=>String(x.id)===String(id));
       if(!s) continue;
-      const updated={...s,liquidado:true,fechaLiquidacion:hoy};
+      const liquidadoPor=currentCosmetologa||currentUser||'—';
+      const updated={...s,liquidado:true,fechaLiquidacion:hoy,liquidadoPor};
       await sbUpsert('sesiones',{id:s.id,data:updated});
       const idx=_cache.sesiones.findIndex(x=>String(x.id)===String(id));
       if(idx>=0) _cache.sesiones[idx]=updated;
@@ -3163,7 +3192,7 @@ function exportarExcel(){
   const wb=XLSX.utils.book_new();
 
   // ── Hoja 1: Desglose financiero por sesión ──
-  const desglose=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Zona / Tipo limpieza','Precio final','Consumibles','Pago Cosmetóloga','Carolina','Sneider','Comisión referido','Referido','Cuenta','Notas','Liquidado','Fecha liquidación']];
+  const desglose=[['Fecha','Hora','Paciente','Equipo','Médico','Cosmetóloga','Zona / Tipo limpieza','Precio final','Consumibles','Pago Cosmetóloga','Carolina','Sneider','Comisión referido','Referido','Cuenta','Notas','Liquidado','Fecha liquidación','Liquidado por']];
   let totPrecio=0,totCons=0,totCosmeto=0,totCar=0,totSne=0,totRef=0;
   sesiones.forEach(s=>{
     const d=s.desglose||{};
@@ -3190,7 +3219,7 @@ function exportarExcel(){
       s.fecha||'',s.hora||'',s.paciente||'',s.equipo||'',s.medico||'',
       s.cosmetologa||'',s.zona||'',precio,cons,cosmeto,car,sne,
       s.comisionRef||0,s.referido||'',s.cuenta||'',s.notas||'',
-      s.liquidado?'Sí':'No',s.fechaLiquidacion||''
+      s.liquidado?'Sí':'No',s.fechaLiquidacion||'',s.liquidadoPor||''
     ]);
   });
   desglose.push([]);
@@ -3748,7 +3777,8 @@ function aplicarRestriccionSidebar(){
   if(esCosmetologa){
     sidebar.querySelectorAll('.nav-section').forEach(el=>el.style.display='none');
     sidebar.querySelectorAll('.nav-item').forEach(el=>{
-      if(el.dataset.page && el.dataset.page!=='agenda-aquapure') el.style.display='none';
+      const pagesCosmeto=['agenda-aquapure','liquidaciones'];
+      if(el.dataset.page && !pagesCosmeto.includes(el.dataset.page)) el.style.display='none';
     });
   } else {
     sidebar.querySelectorAll('.nav-section').forEach(el=>el.style.display='');
