@@ -401,11 +401,15 @@ tr:hover td{background:#f7fafc}
       </div>
       <div class="form-group">
         <label>Precio (COP)</label>
-        <input type="number" id="ca-precio" readonly style="background:#f7fafc;color:#718096">
+        <input type="number" id="ca-precio" oninput="onCaPrecioInput()" style="background:white">
       </div>
       <div class="form-group">
         <label>Ganancia cosmetóloga (COP)</label>
         <input type="number" id="ca-ganancia" readonly style="background:#f0fff4;color:#065f46;font-weight:700">
+      </div>
+      <div class="form-group form-full" id="ca-descuento-wrap" style="display:none">
+        <label>Razón del descuento</label>
+        <input type="text" id="ca-descuento-razon" placeholder="Ej: Familiar, cortesía, promoción">
       </div>
       <div class="form-group">
         <label>Cuenta (opcional)</label>
@@ -3886,7 +3890,17 @@ function onCaTipoChange(){
   const sel = document.getElementById('ca-tipo');
   const opt = sel.options[sel.selectedIndex];
   document.getElementById('ca-precio').value = opt.dataset.precio||'';
+  document.getElementById('ca-precio').dataset.precioBase = opt.dataset.precio||'';
   document.getElementById('ca-ganancia').value = opt.dataset.ganancia||'';
+  document.getElementById('ca-descuento-wrap').style.display='none';
+  document.getElementById('ca-descuento-razon').value='';
+}
+
+function onCaPrecioInput(){
+  const precioActual=parseFloat(document.getElementById('ca-precio').value)||0;
+  const precioBase=parseFloat(document.getElementById('ca-precio').dataset.precioBase)||0;
+  const wrap=document.getElementById('ca-descuento-wrap');
+  if(wrap) wrap.style.display=(precioBase>0&&precioActual<precioBase)?'':'none';
 }
 
 function renderAgendaAqua(){
@@ -3998,6 +4012,10 @@ function mostrarFormCita(cita=null){
     document.getElementById('ca-tipo').value=cita.tipo_limpieza||'';
     document.getElementById('ca-precio').value=cita.precio||'';
     document.getElementById('ca-ganancia').value=cita.ganancia_cosmeto||'';
+    document.getElementById('ca-descuento-razon').value=cita.descuento_razon||'';
+    const protoEdit=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===(cita.tipo_limpieza||''));
+    document.getElementById('ca-precio').dataset.precioBase=protoEdit?protoEdit.precio:'';
+    document.getElementById('ca-descuento-wrap').style.display=(protoEdit&&(cita.precio||0)<protoEdit.precio)?'':'none';
     document.getElementById('ca-estado').value=cita.estado||'Pendiente';
     document.getElementById('ca-cuenta').value=cita.cuenta||'';
     document.getElementById('ca-notas').value=cita.notas||'';
@@ -4118,6 +4136,7 @@ async function guardarCitaAqua(){
     tipo_limpieza: document.getElementById('ca-tipo').value,
     precio:        parseFloat(document.getElementById('ca-precio').value)||0,
     ganancia_cosmeto: parseFloat(document.getElementById('ca-ganancia').value)||0,
+    descuento_razon: document.getElementById('ca-descuento-razon').value.trim(),
     estado:        document.getElementById('ca-estado').value,
     cuenta:        document.getElementById('ca-cuenta').value,
     notas:         document.getElementById('ca-notas').value.trim(),
@@ -4238,11 +4257,14 @@ async function confirmarRealizarCita(){
 
   const c = _citaPendienteRealizar;
   const proto = PROTOCOLOS_AQUAPURE.find(p=>p.nombre===c.tipo_limpieza);
-  const costoConsumibles = proto ? proto.costoConsumibles : 0;
+  const costoConsumiblesBase = proto ? proto.costoConsumibles : 0;
+  const precioROI = proto ? proto.precio : c.precio;
+  const costoConsumibles = Math.max(0, costoConsumiblesBase - Math.max(0, precioROI - c.precio));
   const pagoCosmeto = proto ? proto.pagoCosmeto : 0;
   const utilidades = c.precio - costoConsumibles - pagoCosmeto;
   const carolina = c.doctor==='Carolina' ? utilidades : 0;
   const sneider  = c.doctor==='Sneider'  ? utilidades : 0;
+  const descPctFinal = precioROI>0 ? Math.max(0,(precioROI-c.precio)/precioROI) : 0;
 
   const sesion = {
     id: Date.now(),
@@ -4252,12 +4274,12 @@ async function confirmarRealizarCita(){
     zonaVol: '', medico: c.doctor, cosmetologa: c.cosmetologa,
     esPaquete: false, nsesion: 1, totalSesiones: 1, notasPaquete: '',
     cuenta, notas: c.notas||'',
-    precio: c.precio, precioFinal: c.precio,
-    descPct: 0, descRazon: '', soloDisparos: false,
+    precio: precioROI, precioFinal: c.precio,
+    descPct: descPctFinal, descRazon: c.descuento_razon||'', soloDisparos: false,
     costoUltra: 0, costoVol: 0, costoTotal: 0,
     transUltra: [], transVol: [],
     referido: '', referidoTipo: '', comisionRef: 0,
-    utilBruta: c.precio, utilDespRef: c.precio,
+    utilBruta: utilidades, utilDespRef: utilidades,
     desglose: {costoConsumibles, pagoCosmeto_limpieza:pagoCosmeto, utilidades, comisionRef:0, carolina, sneider},
     cfg: getCfg(),
     registradoPor: currentUser||'—',
