@@ -2331,7 +2331,8 @@ function calcular(){
 
   if(eq==='aquapure'){
     const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===(zonasSeleccionadas[0]?.nombre||''));
-    const costoConsumibles=proto?proto.costoConsumibles:0;
+    const costoConsumiblesBase=proto?proto.costoConsumibles:0;
+    const costoConsumibles=Math.max(0,costoConsumiblesBase-Math.max(0,precioROI-precioFinal));
     const pagoCosmeto=proto?proto.pagoCosmeto:0;
     const utilidades=precioFinal-costoConsumibles-pagoCosmeto;
     items.push({lbl:'Consumibles Aquapure',val:cop(costoConsumibles),cls:'warning'});
@@ -2469,7 +2470,8 @@ async function guardarSesion(){
   let desglose={};
   if(eq==='aquapure'){
     const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===(zonasSeleccionadas[0]?.nombre||zona));
-    const costoConsumibles=proto?proto.costoConsumibles:0;
+    const costoConsumiblesBase=proto?proto.costoConsumibles:0;
+    const costoConsumibles=Math.max(0,costoConsumiblesBase-Math.max(0,precioROI-precioFinal));
     const pagoCosmeto=proto?proto.pagoCosmeto:0;
     const utilidades=precioFinal-costoConsumibles-pagoCosmeto;
     const cosmetologasRef=['Diana','Vero','Cristina'];
