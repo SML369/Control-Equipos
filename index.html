@@ -2604,6 +2604,7 @@ function renderSesiones(){
   const filtMed=document.getElementById('fil-medico').value;
   const filtBus=document.getElementById('fil-buscar').value.toLowerCase();
   let sesiones=getSesiones().filter(s=>{
+    if(esCosmetologa && s.equipo!=='aquapure') return false;
     if(filtEq&&s.equipo!==filtEq) return false;
     if(filtMed&&s.medico!==filtMed) return false;
     if(filtBus&&!s.paciente.toLowerCase().includes(filtBus)) return false;
@@ -2641,8 +2642,8 @@ function renderSesiones(){
       <td style="font-size:10px;color:#718096">${s.registradoPor||'—'}</td>
       <td>${s.cuenta||'—'}</td>
       <td style="display:flex;gap:4px">
-        <button class="btn btn-warning btn-sm" onclick="pedirEditarSesion(${s.id})" title="Editar">✎</button>
-        <button class="btn btn-danger btn-sm" onclick="pedirDeleteSesion(${s.id})">×</button>
+        ${!esCosmetologa?`<button class="btn btn-warning btn-sm" onclick="pedirEditarSesion(${s.id})" title="Editar">✎</button>
+        <button class="btn btn-danger btn-sm" onclick="pedirDeleteSesion(${s.id})">×</button>`:''}
       </td>
     </tr>`;
   }).join('');
@@ -3215,6 +3216,7 @@ function exportarExcel(){
   const filtMed = document.getElementById('fil-medico').value;
   const filtBus = document.getElementById('fil-buscar').value.toLowerCase();
   let sesiones  = getSesiones().filter(s=>s.estado!=='Cancelada');
+  if(esCosmetologa) sesiones = sesiones.filter(s=>s.equipo==='aquapure');
   if(filtEq)  sesiones = sesiones.filter(s=>s.equipo===filtEq);
   if(filtMed) sesiones = sesiones.filter(s=>s.medico===filtMed);
   if(filtBus) sesiones = sesiones.filter(s=>(s.paciente||'').toLowerCase().includes(filtBus));
@@ -3274,6 +3276,27 @@ function exportarExcel(){
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(hr),'Trans_'+(eq==='ultra'?'Ultra':'Vol'));
   });
+  // ── Hoja: Disparos Ultraformer por transductor ──
+  const ultraSes=sesiones.filter(s=>['ultraformer','volformer'].includes(s.equipo)&&s.transUltra&&s.transUltra.length);
+  if(ultraSes.length){
+    const invU=getInventario('ultra');
+    const dr=[['Fecha','Paciente','Médico','Trans. ID','Tipo','Medida','Disparos']];
+    const resumen={};
+    ultraSes.forEach(s=>{
+      s.transUltra.forEach(tu=>{
+        const t=invU.find(x=>x.id===tu.transId);
+        const tipo=t?t.tipo:'—'; const medida=t?t.medida:'—';
+        dr.push([s.fecha,s.paciente,s.medico,tu.transId,tipo,medida,tu.disparos]);
+        if(!resumen[tu.transId]) resumen[tu.transId]={tipo,medida,total:0};
+        resumen[tu.transId].total+=tu.disparos;
+      });
+    });
+    dr.push([]);
+    dr.push(['RESUMEN POR TRANSDUCTOR','','','','','','']);
+    dr.push(['Trans. ID','Tipo','Medida','Total disparos en período','','','']);
+    Object.entries(resumen).forEach(([id,v])=>dr.push([id,v.tipo,v.medida,v.total,'','','']));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(dr),'Disparos_Ultra');
+  }
   // Soluciones
   const sols=getSoluciones();
   const sr=[['Fecha','Solución','Cantidad']];
@@ -3808,7 +3831,7 @@ function aplicarRestriccionSidebar(){
   if(esCosmetologa){
     sidebar.querySelectorAll('.nav-section').forEach(el=>el.style.display='none');
     sidebar.querySelectorAll('.nav-item').forEach(el=>{
-      const pagesCosmeto=['agenda-aquapure','liquidaciones'];
+      const pagesCosmeto=['agenda-aquapure','liquidaciones','sesiones'];
       if(el.dataset.page && !pagesCosmeto.includes(el.dataset.page)) el.style.display='none';
     });
   } else {
