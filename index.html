@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dermato Control</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -3758,112 +3759,143 @@ function renderCotizaciones(){
       +'<td><strong>'+cop(c.precio_total)+'</strong></td>'
       +'<td style="display:flex;gap:5px">'
       +'<button class="btn btn-warning btn-sm" onclick="editarCotizacion('+c.id+')" title="Editar">\u270e</button>'
-      +'<button class="btn btn-primary btn-sm" onclick="generarPDFCotizacion('+c.id+')" title="PDF">\u21e9 PDF</button>'
+      +'<button class="btn btn-primary btn-sm" onclick="generarWordCotizacion('+c.id+')" title="Descargar Word">\u21e9 Word</button>'
       +'<button class="btn btn-danger btn-sm" onclick="eliminarCotizacion('+c.id+')">\u00d7</button>'
       +'</td></tr>';
   }).join('');
 }
 
-function generarPDFCotizacion(id){
+async function generarWordCotizacion(id){
+  if(!window.docx){alert('La librería de Word no está cargada aún. Espera un momento y vuelve a intentarlo.');return;}
   const cot=(_cache.cotizaciones||[]).find(function(c){return c.id===id;});
   if(!cot){alert('Cotización no encontrada.');return;}
   const zonas=(function(){try{return JSON.parse(cot.zonas||'[]');}catch(e){return [];}})();
-  const total=cot.precio_total||0;
   const paraDr=cot.para_doctor||cot.doctor;
   const esC=paraDr==='Carolina';
   const esS=paraDr==='Sneider';
-  const logo=esC?LOGO_CAROLINA:esS?LOGO_SNEIDER:null;
-  const acento=esC?'#a53036':'#1a1a1a';
-  const acentoLight=esC?'#fdf2f2':'#f5f5f5';
-  const bgPage=esC?'#faf9f7':'#ffffff';
+  const logoB64=esC?LOGO_CAROLINA:esS?LOGO_SNEIDER:null;
+  const acento=esC?'A53036':'1A1A1A';
+  const doctorLabel=esC?'Dra. Carolina Mejía · Dermatología':esS?'Dr. Sneider Torres':'';
+  const tagline=esC?'Una nueva era para tu piel':'';
+  const contacto=esC?'Dra. Carolina Mejía · Caro Mejía Dermatología':'Dr. Sneider Torres';
   const social=esC?'@caromejiadermatologia':'@dr.sneiderma';
-  const drNombre=esC?'Dra. Carolina Mejía':esS?'Dr. Sneider Torres':'';
 
-  const logoHtml=logo
-    ?'<img src="'+logo+'" alt="Logo" style="max-height:85px;max-width:55%;object-fit:contain;display:block;margin:0 auto">'
-    :'<div style="font-size:22px;font-weight:700;color:'+acento+';text-align:center">'+paraDr+'</div>';
+  const {Document,Paragraph,TextRun,ImageRun,AlignmentType,BorderStyle,Packer,TabStopType}=window.docx;
 
-  const filas=zonas.map(function(z){
-    const equipoLinea=z.equipo
-      ?'<span style="font-size:9px;color:#9a9a9a;display:block;margin-bottom:1px">'+z.equipo+'</span>'
-      :'<span style="font-size:9px;color:#be185d;display:block;margin-bottom:1px">Inyectable</span>';
-    return '<tr>'
-      +'<td style="padding:10px 0;border-bottom:1px solid #efefef;font-size:12.5px;color:#2d3748">'+equipoLinea+(z.descripcion||z.nombre)+'</td>'
-      +'<td style="padding:10px 0;border-bottom:1px solid #efefef;font-size:12.5px;color:#2d3748;text-align:right;white-space:nowrap;font-weight:600">'+cop(z.precio)+'</td>'
-      +'</tr>';
-  }).join('');
-
-  const pacRows=[];
-  if(cot.paciente) pacRows.push(['Nombre',cot.paciente]);
-  if(cot.documento) pacRows.push(['C.C.',cot.documento]);
-  if(cot.telefono) pacRows.push(['Tel.',cot.telefono]);
-  const pacHtml=pacRows.map(function(r){
-    return '<div style="display:flex;gap:8px;margin-bottom:3px">'
-      +'<span style="font-size:10px;color:#9a9a9a;text-transform:uppercase;letter-spacing:1px;min-width:42px">'+r[0]+'</span>'
-      +'<span style="font-size:12px;font-weight:600;color:#1a1a1a">'+r[1]+'</span>'
-      +'</div>';
-  }).join('');
-
-  const notasHtml=cot.notas
-    ?'<div style="margin-top:20px;padding:12px 14px;background:'+acentoLight+';border-radius:6px">'
-      +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9a9a9a;margin-bottom:6px">Condiciones</div>'
-      +'<div style="font-size:11px;color:#555;line-height:1.7">'+cot.notas.replace(/\n/g,'<br>')+'</div>'
-      +'</div>'
-    :'';
-
-  const parts=cot.fecha.split('-');
+  // Fecha
   const meses=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  const fechaLarga=parseInt(parts[2])+' de '+meses[parseInt(parts[1])-1]+' de '+parts[0];
+  const parts=(cot.fecha||'').split('-');
+  const fechaStr=parts[2]?parseInt(parts[2])+' de '+meses[parseInt(parts[1])-1]+' de '+parts[0]:'';
 
-  const html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
-    +'<title>Cotización '+cot.numero+'</title>'
-    +'<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">'
-    +'<style>'
-    +'*{box-sizing:border-box;margin:0;padding:0}'
-    +'html,body{background:'+bgPage+';font-family:Montserrat,Arial,sans-serif;color:#2d3748}'
-    +'.page{width:170mm;margin:0 auto;padding:15mm 0 12mm}'
-    +'table{width:100%;border-collapse:collapse}'
-    +'@media print{html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:0}.page{padding:15mm}}'
-    +'</style></head>'
-    +'<body><div class="page">'
-    +'<div style="text-align:center;padding-bottom:6px">'+logoHtml+'</div>'
-    +(drNombre?'<div style="text-align:center;margin-bottom:8px"><span style="font-size:10.5px;color:#888;letter-spacing:0.5px">'+drNombre+' · Médica Dermatóloga</span></div>':'')
-    +'<div style="height:2px;background:'+acento+';margin:0 0 22px"></div>'
-    +'<div style="text-align:center;font-size:10px;letter-spacing:6px;text-transform:uppercase;color:#aaa;margin-bottom:22px;font-weight:600">C O T I Z A C I &Oacute; N</div>'
-    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:20px">'
-    +'<div style="flex:1">'
-    +(pacHtml||'<span style="font-size:12px;color:#aaa;font-style:italic">Paciente no especificado</span>')
-    +'</div>'
-    +'<div style="text-align:right;flex-shrink:0">'
-    +'<div style="font-size:9px;color:#9a9a9a;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">N° Cotización</div>'
-    +'<div style="font-size:14px;font-weight:700;color:'+acento+';margin-bottom:10px">'+cot.numero+'</div>'
-    +'<div style="font-size:9px;color:#9a9a9a;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Fecha</div>'
-    +'<div style="font-size:11px;font-weight:500">'+fechaLarga+'</div>'
-    +'<div style="font-size:9px;color:#aaa;margin-top:6px">Válida por 30 días</div>'
-    +'</div></div>'
-    +'<hr style="border:none;border-top:1px dashed #d8d8d8;margin:0 0 12px">'
-    +'<div style="display:flex;justify-content:space-between;padding:0 0 8px">'
-    +'<span style="font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:'+acento+';font-weight:700">Tratamiento</span>'
-    +'<span style="font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:'+acento+';font-weight:700">Inversión</span>'
-    +'</div>'
-    +'<table>'+filas+'</table>'
-    +'<div style="display:flex;justify-content:flex-end;align-items:center;gap:20px;padding:14px 0 0;border-top:2px solid '+acento+';margin-top:2px">'
-    +'<span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#888;font-weight:600">Total estimado</span>'
-    +'<span style="font-size:20px;font-weight:700;color:'+acento+'">'+cop(total)+'</span>'
-    +'</div>'
-    +notasHtml
-    +'<div style="margin-top:36px;text-align:center">'
-    +'<hr style="border:none;border-top:1px solid #e4e4e4;margin-bottom:12px">'
-    +'<span style="font-size:9.5px;color:#bbb;letter-spacing:1.5px">Medellín, Colombia &nbsp;·&nbsp; '+social+'</span>'
-    +'</div>'
-    +'</div>'
-    +'<script>window.onload=function(){setTimeout(function(){window.print();},500);};<\/script>'
-    +'</body></html>';
+  // Formato peso colombiano
+  const fmt=v=>new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0}).format(v||0);
 
-  const win=window.open('','_blank','width=820,height=1000');
-  if(!win){alert('Permite ventanas emergentes para generar el PDF.');return;}
-  win.document.write(html);
-  win.document.close();
+  // Helper TextRun
+  const t=(text,o={})=>new TextRun({text,font:'Montserrat',size:o.size||17,bold:o.bold||false,italics:o.italics||false,color:o.color||'222222'});
+
+  // Separador horizontal
+  const sep=()=>new Paragraph({border:{bottom:{color:'CCCCCC',style:BorderStyle.SINGLE,size:6,space:6}},spacing:{before:140,after:140},children:[]});
+
+  const children=[];
+
+  // Logo
+  if(logoB64){
+    try{
+      const b64=logoB64.split(',')[1];
+      const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+      children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:80},children:[new ImageRun({data:bytes,transformation:{width:140,height:75},type:'png'})]}));
+    }catch(e){
+      children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[t(paraDr,{bold:true,size:22,color:acento})]}));
+    }
+  }
+
+  // Encabezado
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[t('PROPUESTA DE TRATAMIENTO',{bold:true,size:19})]}));
+  if(doctorLabel) children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[t(doctorLabel,{color:'777777',size:17})]}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,spacing:{after:160},children:[t(fechaStr,{color:'BBBBBB',size:16})]}));
+  children.push(sep());
+
+  // Paciente
+  children.push(new Paragraph({children:[t('Paciente',{color:'BBBBBB',size:15})]}));
+  children.push(new Paragraph({children:[t(cot.paciente||'',{bold:true,size:22})]}));
+  if(cot.documento) children.push(new Paragraph({children:[t('C.C. '+cot.documento,{color:'777777',size:17})]}));
+  if(cot.telefono)  children.push(new Paragraph({children:[t('Tel. '+cot.telefono, {color:'777777',size:17})]}));
+  children.push(new Paragraph({spacing:{after:60},children:[]}));
+  children.push(sep());
+
+  // N° cotización
+  children.push(new Paragraph({spacing:{after:160},children:[
+    t('N° '+(cot.numero||'—'),{color:'777777',size:16}),
+    new TextRun({text:'   ·   ',font:'Montserrat',color:'CCCCCC',size:16}),
+    t('Válida por 30 días',{color:'BBBBBB',size:15,italics:true}),
+  ]}));
+
+  // Tratamientos
+  zonas.forEach(function(z,i){
+    const num=String(i+1).padStart(2,'0');
+    const nombre=(z.descripcion||z.nombre||'').toUpperCase();
+    const precio=fmt(z.precio);
+    children.push(new Paragraph({
+      tabStops:[{type:TabStopType.RIGHT,position:8640}],
+      spacing:{before:140},
+      children:[
+        t(num+'  '+nombre,{bold:true,size:21}),
+        new TextRun({text:'\t',font:'Montserrat'}),
+        t(precio,{bold:true,size:21,color:acento}),
+      ]
+    }));
+    const etiqueta=z.equipo?z.equipo.charAt(0).toUpperCase()+z.equipo.slice(1):'Inyectable / Otro';
+    children.push(new Paragraph({spacing:{after:80},children:[t(etiqueta,{color:'777777',size:16,italics:true})]}));
+  });
+
+  children.push(sep());
+
+  // Total
+  children.push(new Paragraph({
+    alignment:AlignmentType.RIGHT,
+    spacing:{before:80,after:200},
+    children:[
+      t('Total estimado: ',{color:'777777',size:18}),
+      t(fmt(cot.precio_total),{bold:true,size:22,color:acento}),
+    ]
+  }));
+
+  // Condiciones / notas
+  if(cot.notas){
+    children.push(new Paragraph({children:[t('Condiciones',{bold:true,size:18,color:acento})]}));
+    cot.notas.split('\n').forEach(function(l){
+      if(l.trim()) children.push(new Paragraph({children:[t('• '+l,{color:'555555',size:16})]}));
+    });
+    children.push(new Paragraph({children:[]}));
+  }
+
+  // Footer
+  children.push(sep());
+  if(tagline) children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[t(tagline,{italics:true,color:'777777',size:17})]}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[t(contacto,{color:'BBBBBB',size:15})]}));
+  children.push(new Paragraph({alignment:AlignmentType.CENTER,children:[t(social,{color:'BBBBBB',size:15})]}));
+
+  const doc=new Document({
+    styles:{default:{document:{run:{font:'Montserrat'}}}},
+    sections:[{
+      properties:{page:{margin:{top:1440,right:1440,bottom:1440,left:1440}}},
+      children
+    }]
+  });
+
+  try{
+    const blob=await Packer.toBlob(doc);
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='cotizacion_'+((cot.paciente||'paciente').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,''))+'.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('Error generando el archivo Word: '+e.message);
+  }
 }
 cargarConfig(); setFechaHoy(); poblarReferidos();
 cargarDatos();
