@@ -1195,40 +1195,23 @@ const TRANS_VOL_MEDIDAS = ['0.25mm','3mm','4mm','16mm'];
 
 // Protocolos de respaldo (se usan si Supabase falla o está vacío)
 const _PROTO_FALLBACK = [
-  // ULTRAFORMER
-  {id:'u_piel_brillante',equipo:'ultraformer',nombre:'Piel brillante (tono de piel) ultrabooster 1.5',precio:4800000,precio_doc:null,disparos_ref:200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_banco_colageno',equipo:'ultraformer',nombre:'Banco de colágeno',precio:1250000,precio_doc:null,disparos_ref:200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_ultra_lips',equipo:'ultraformer',nombre:'Ultra lips (labios)',precio:600000,precio_doc:null,disparos_ref:80,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_arrugas_frente',equipo:'ultraformer',nombre:'Arrugas en la frente',precio:1500000,precio_doc:null,disparos_ref:110,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_parpado_sup',equipo:'ultraformer',nombre:'Párpado superior',precio:1250000,precio_doc:null,disparos_ref:160,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_parpado_inf',equipo:'ultraformer',nombre:'Párpado inferior',precio:1250000,precio_doc:null,disparos_ref:200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_lifting_periorbital',equipo:'ultraformer',nombre:'Lifting peri orbitario',precio:2000000,precio_doc:null,disparos_ref:410,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_bolsa_ojos',equipo:'ultraformer',nombre:'Bolsa para los ojos',precio:1500000,precio_doc:null,disparos_ref:230,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_surco_nasolabial',equipo:'ultraformer',nombre:'Surco naso labial',precio:1250000,precio_doc:null,disparos_ref:100,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_tercio_inf_1',equipo:'ultraformer',nombre:'Tercio inferior (perfil 1 rostro joven y delgado)',precio:2000000,precio_doc:null,disparos_ref:140,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_tercio_inf_2',equipo:'ultraformer',nombre:'Tercio inferior (perfil 2 edad media, pérdida media)',precio:2500000,precio_doc:null,disparos_ref:140,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_tercio_inf_3',equipo:'ultraformer',nombre:'Tercio inferior (perfil 3, cara redonda, pesado)',precio:2500000,precio_doc:null,disparos_ref:200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_reduccion_grasa_2',equipo:'ultraformer',nombre:'Reducción de grasa del tercio inferior (perfil 2)',precio:2500000,precio_doc:null,disparos_ref:200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_reduccion_grasa_3',equipo:'ultraformer',nombre:'Reducción de grasa del tercio inferior (perfil 3)',precio:2500000,precio_doc:null,disparos_ref:400,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_arrugas_periorales',equipo:'ultraformer',nombre:'Arrugas periorales (código de barras)',precio:1250000,precio_doc:null,disparos_ref:160,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_submenton_grasa',equipo:'ultraformer',nombre:'Submentón (grasa papada)',precio:3000000,precio_doc:null,disparos_ref:190,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_submenton_flacidez',equipo:'ultraformer',nombre:'Submentón flacidez',precio:1800000,precio_doc:null,disparos_ref:140,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_cuello',equipo:'ultraformer',nombre:'Cuello completo',precio:2800000,precio_doc:null,disparos_ref:200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_submenton_cuello',equipo:'ultraformer',nombre:'Submentón y cuello',precio:3500000,precio_doc:null,disparos_ref:340,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_full_face_joven',equipo:'ultraformer',nombre:'Full face (paciente joven de piel fina)',precio:4500000,precio_doc:null,disparos_ref:830,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_full_face_2',equipo:'ultraformer',nombre:'Full face (paciente 2)',precio:5200000,precio_doc:null,disparos_ref:880,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_impacto_mpt',equipo:'ultraformer',nombre:'Impacto mpt full face (2 profundidades ultrabooster)',precio:6000000,precio_doc:null,disparos_ref:1280,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_gluteo',equipo:'ultraformer',nombre:'Glúteo',precio:4000000,precio_doc:null,disparos_ref:450,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_brazo_grande',equipo:'ultraformer',nombre:'Brazo grande',precio:2500000,precio_doc:null,disparos_ref:600,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_brazo_pequeno',equipo:'ultraformer',nombre:'Brazo pequeño',precio:2000000,precio_doc:null,disparos_ref:300,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_manos',equipo:'ultraformer',nombre:'Manos',precio:1000000,precio_doc:null,disparos_ref:150,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_preaxilar',equipo:'ultraformer',nombre:'Preaxilar',precio:800000,precio_doc:null,disparos_ref:150,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_abdomen',equipo:'ultraformer',nombre:'Abdomen completo',precio:4500000,precio_doc:null,disparos_ref:1250,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_muslo_pequeno',equipo:'ultraformer',nombre:'Muslo (interno) - pequeño',precio:2000000,precio_doc:null,disparos_ref:1200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_rodilla',equipo:'ultraformer',nombre:'Rodilla',precio:1000000,precio_doc:null,disparos_ref:300,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_muslo_alto',equipo:'ultraformer',nombre:'Muslo alto',precio:2500000,precio_doc:null,disparos_ref:1200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_zona_infraglutea',equipo:'ultraformer',nombre:'Zona infra glútea',precio:2500000,precio_doc:null,disparos_ref:1200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
-  {id:'u_pierna',equipo:'ultraformer',nombre:'Pierna',precio:2000000,precio_doc:null,disparos_ref:1200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  // ULTRAFORMER (tabla base actualizada — Jun 2026)
+  {id:'u_lig_malares_otros',equipo:'ultraformer',nombre:'Ligamentos malares + otros protocolos',precio:250000,precio_doc:null,disparos_ref:50,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_lig_malares',equipo:'ultraformer',nombre:'Ligamentos malares (solos)',precio:1050000,precio_doc:null,disparos_ref:210,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_zona_temporal',equipo:'ultraformer',nombre:'Zona temporal',precio:600000,precio_doc:null,disparos_ref:120,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_cejas',equipo:'ultraformer',nombre:'Levantamiento de cejas',precio:600000,precio_doc:null,disparos_ref:120,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_parpado_inf',equipo:'ultraformer',nombre:'Párpado inferior (ojeras)',precio:350000,precio_doc:null,disparos_ref:60,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_palpebral_frente',equipo:'ultraformer',nombre:'Palpebral superior y frente',precio:790000,precio_doc:null,disparos_ref:160,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_mejillas',equipo:'ultraformer',nombre:'Mejillas',precio:2000000,precio_doc:null,disparos_ref:360,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_papada',equipo:'ultraformer',nombre:'Papada',precio:1500000,precio_doc:null,disparos_ref:320,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_marc_mandibular',equipo:'ultraformer',nombre:'Marcación mandibular',precio:500000,precio_doc:null,disparos_ref:100,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_cuello',equipo:'ultraformer',nombre:'Cuello',precio:1800000,precio_doc:null,disparos_ref:400,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_glow',equipo:'ultraformer',nombre:'Glow',precio:900000,precio_doc:null,disparos_ref:200,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_perioral',equipo:'ultraformer',nombre:'Perioral (código de barras)',precio:700000,precio_doc:null,disparos_ref:140,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_escote',equipo:'ultraformer',nombre:'Escote',precio:1950000,precio_doc:null,disparos_ref:400,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_abdomen',equipo:'ultraformer',nombre:'Abdomen',precio:2000000,precio_doc:null,disparos_ref:400,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_manos',equipo:'ultraformer',nombre:'Manos',precio:1800000,precio_doc:null,disparos_ref:400,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
+  {id:'u_ombligo_triste',equipo:'ultraformer',nombre:'Ombligo triste',precio:1800000,precio_doc:null,disparos_ref:400,disparos_vol:null,costo_consumibles:null,pago_cosmeto:null,activo:true},
   // VOLNEWMER
   {id:'v_frente',equipo:'volnewmer',nombre:'Frente',precio:1180800,precio_doc:null,disparos_ref:200,disparos_vol:{'0':0,'3':200,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
   {id:'v_ojos',equipo:'volnewmer',nombre:'Ojos',precio:815867,precio_doc:null,disparos_ref:200,disparos_vol:{'0':200,'3':0,'4':0,'16':0},costo_consumibles:null,pago_cosmeto:null,activo:true},
@@ -1524,15 +1507,22 @@ async function cargarDatos(){
     _cache.cfg = cfgRow ? cfgRow.valor : null;
     _cache.referidos = refRow ? refRow.valor : null;
     if(cosmetoRow && Array.isArray(cosmetoRow.valor)) listaCosmetologas = cosmetoRow.valor;
-    // Si Supabase está vacío o tiene protocolos Aquapure desactualizados, usar fallback inmediatamente y sincronizar
+    // Si Supabase está vacío o tiene protocolos desactualizados, usar fallback y sincronizar
     const aquaDesact = _PROTO_FALLBACK.filter(p=>p.equipo==='aquapure').some(fp=>{
       const sp=protos.find(p=>p.id===fp.id);
       return !sp||sp.costo_consumibles!==fp.costo_consumibles||sp.pago_cosmeto!==fp.pago_cosmeto;
     });
-    _protosDB = (!protos.length || aquaDesact) ? _PROTO_FALLBACK : protos;
+    // Verificar si los protocolos Ultraformer nuevos ya están en Supabase
+    const ultraDesact = _PROTO_FALLBACK.filter(p=>p.equipo==='ultraformer').some(fp=>!protos.find(p=>p.id===fp.id));
+    _protosDB = (!protos.length || aquaDesact || ultraDesact) ? _PROTO_FALLBACK : protos;
     _cargarProtocolos(_protosDB);
-    if(!protos.length || aquaDesact){
-      Promise.all(_PROTO_FALLBACK.map(p=>sbUpsert('protocolos',p))).catch(e=>console.warn('No se pudieron sincronizar protocolos:',e));
+    if(!protos.length || aquaDesact || ultraDesact){
+      const fallbackIds=new Set(_PROTO_FALLBACK.map(p=>p.id));
+      const oldProtos=protos.filter(p=>p.equipo==='ultraformer'&&!fallbackIds.has(p.id));
+      Promise.all([
+        ..._PROTO_FALLBACK.map(p=>sbUpsert('protocolos',p)),
+        ...oldProtos.map(p=>sbUpsert('protocolos',{...p,activo:false}))
+      ]).catch(e=>console.warn('No se pudieron sincronizar protocolos:',e));
     }
     aplicarConfig();
     poblarReferidos();
@@ -2284,15 +2274,18 @@ function calcular(){
   if(!precioInput) return;
   // costo disparos ultra
   const ultraTotal=ultraEntradas.reduce((a,e)=>a+(parseInt(e.disparos)||0),0);
-  const costoUltra=ultraTotal*700;
+  const costoUltraHW=ultraTotal*700; // costo real cartucho (siempre $700)
+  const costoUltra=ultraTotal*(med==='Sneider'?2000:700); // costo financiero
+  const ownerGanUltra=med==='Sneider'?(costoUltra-costoUltraHW):null; // ganancia neta Carolina cuando Sneider usa
   // costo disparos vol
-  let costoVol=0;
+  let costoVol=0, costoVolHW=0;
   volEntradas.forEach(e=>{
     const d=parseInt(e.disparos)||0;
     if(!d) return;
     let costoD=0;
     if(e.transId){const inv=getInventario('vol');const t=inv.find(x=>x.id===e.transId);if(t)costoD=getCostoDisparo('vol',t.medida);}
-    costoVol+=d*costoD;
+    costoVolHW+=d*costoD;
+    costoVol+=d*costoD*(med==='Carolina'?2.4:1); // ×2.4 cuando Carolina usa Volnewmer
   });
   const costoTotal=costoUltra+costoVol;
   // Solo disparos: precio final = costo total disparos, descuento calculado automáticamente
@@ -2328,7 +2321,7 @@ function calcular(){
     items.push({lbl:descLabel,val:`-${cop(precioROI-precioFinal)}`,cls:'danger'});
   }
   items.push({lbl:'Precio cobrado',val:cop(precioFinal),cls:'highlight'});
-  if(costoUltra>0) items.push({lbl:`Disparos Ultraformer (${ultraTotal}×$700)`,val:cop(costoUltra),cls:'warning'});
+  if(costoUltra>0){const tarifaU=med==='Sneider'?'2.000':'700';items.push({lbl:`Disparos Ultraformer (${ultraTotal}×$${tarifaU})`,val:cop(costoUltra),cls:'warning'});}
   if(costoVol>0) items.push({lbl:`Disparos Volnewmer`,val:cop(costoVol),cls:'warning'});
   items.push({lbl:'Utilidad bruta',val:cop(utilBruta),cls:''});
   if(comisionRef>0 && eq!=='aquapure') items.push({lbl:`Comisión ${refNombre} (${Math.round(refPct*100)}%)`,val:cop(comisionRef),cls:'purple'});
@@ -2356,17 +2349,46 @@ function calcular(){
       items.push({lbl:`Ganancia ${med}`,val:cop(utilidades),cls:'success'});
     }
   } else if(eq==='ultraformer'){
-    _calcDistribucionEquipo(items,'ultraformer',med,utilDespRef,cfg,comisionRef>0,descPct>0);
+    if(med==='Carolina'||med==='Cosmetologa'){
+      _calcDistribucionEquipo(items,'ultraformer',med,utilDespRef,cfg,comisionRef>0,descPct>0);
+    } else {
+      // Nuevo modelo: $2.000/disparo — Sneider usa equipo de Carolina
+      items.push({lbl:`Cobro uso Ultra → Carolina ($2.000×${ultraTotal} disp.)`,val:cop(costoUltra),cls:'highlight'});
+      items.push({lbl:'Carolina recibe neto',val:cop(ownerGanUltra),cls:'success'});
+      items.push({lbl:'Sneider recibe',val:cop(utilDespRef),cls:'success'});
+    }
   } else if(eq==='volnewmer'){
-    _calcDistribucionEquipo(items,'volnewmer',med,utilDespRef,cfg,comisionRef>0,descPct>0);
+    if(med==='Sneider'||med==='Cosmetologa'){
+      _calcDistribucionEquipo(items,'volnewmer',med,utilDespRef,cfg,comisionRef>0,descPct>0);
+    } else {
+      // Nuevo modelo: ×2.4 — Carolina usa equipo de Sneider
+      const ownerGanVol=costoVol-costoVolHW;
+      items.push({lbl:'Cobro uso Vol → Sneider (×2,4)',val:cop(costoVol),cls:'highlight'});
+      items.push({lbl:'Sneider recibe neto',val:cop(ownerGanVol),cls:'success'});
+      items.push({lbl:'Carolina recibe',val:cop(utilDespRef),cls:'success'});
+    }
   } else if(eq==='volformer'){
     // Separar por equipo
-    const utilUltra=costoUltra>0||costoVol>0 ? (costoUltra/(costoUltra+costoVol||1))*utilDespRef : utilDespRef/2;
+    const utilUltra=costoUltra>0||costoVol>0?(costoUltra/(costoUltra+costoVol||1))*utilDespRef:utilDespRef/2;
     const utilVoln=utilDespRef-utilUltra;
     items.push({lbl:'— Lado Ultraformer —',val:'',cls:''});
-    _calcDistribucionEquipo(items,'ultraformer',med,utilUltra,cfg,false,descPct>0);
+    if(med==='Carolina'||med==='Cosmetologa'){
+      _calcDistribucionEquipo(items,'ultraformer',med,utilUltra,cfg,false,descPct>0);
+    } else {
+      const ownerGanU=ownerGanUltra!==null?(costoUltra-costoUltraHW)*((costoUltra/(costoUltra+costoVol||1))):0;
+      items.push({lbl:`Cobro uso Ultra → Carolina ($2.000×${ultraTotal} disp.)`,val:cop(costoUltra),cls:'highlight'});
+      items.push({lbl:'Carolina recibe neto',val:cop(ownerGanUltra),cls:'success'});
+      items.push({lbl:'Sneider recibe',val:cop(utilUltra),cls:'success'});
+    }
     items.push({lbl:'— Lado Volnewmer —',val:'',cls:''});
-    _calcDistribucionEquipo(items,'volnewmer',med,utilVoln,cfg,false,descPct>0);
+    if(med==='Sneider'||med==='Cosmetologa'){
+      _calcDistribucionEquipo(items,'volnewmer',med,utilVoln,cfg,false,descPct>0);
+    } else {
+      const ownerGanV=costoVol-costoVolHW;
+      items.push({lbl:'Cobro uso Vol → Sneider (×2,4)',val:cop(costoVol),cls:'highlight'});
+      items.push({lbl:'Sneider recibe neto',val:cop(ownerGanV),cls:'success'});
+      items.push({lbl:'Carolina recibe',val:cop(utilVoln),cls:'success'});
+    }
   }
 
   document.getElementById('result-box').classList.remove('hidden');
@@ -2424,7 +2446,7 @@ async function guardarSesion(){
   if(!cuenta){alert('Selecciona la cuenta a la que se realizó el pago.');return;}
 
   // Validar transductores y calcular costos (sin descontar inventario todavía)
-  let transUltra=[], costoUltra=0, _invUltra=null;
+  let transUltra=[], costoUltra=0, disparosUltraTotal=0, _invUltra=null;
   if(eq==='ultraformer'||eq==='volformer'){
     const validas=ultraEntradas.filter(e=>e.transId&&parseInt(e.disparos)>0);
     if(!validas.length){alert('Agrega al menos un transductor Ultraformer con disparos.');return;}
@@ -2435,13 +2457,14 @@ async function guardarSesion(){
       const d=parseInt(e.disparos);
       const t=inv.find(x=>x.id===e.transId);
       if(t) t.disparosUsados=(t.disparosUsados||0)+d;
-      costoUltra+=d*700;
+      disparosUltraTotal+=d;
+      costoUltra+=d*(med==='Sneider'?2000:700); // $2.000/disp para Sneider, $700 para Carolina
       transUltra.push({transId:e.transId,disparos:d});
     });
     _invUltra=inv; // se guarda después de confirmar el guardado
   }
 
-  let transVol=[], costoVol=0, _invVol=null;
+  let transVol=[], costoVol=0, costoVolHW=0, _invVol=null;
   if(eq==='volnewmer'||eq==='volformer'){
     const validas=volEntradas.filter(e=>e.transId&&parseInt(e.disparos)>0);
     if(!validas.length){alert('Agrega al menos un transductor Volnewmer con disparos.');return;}
@@ -2453,8 +2476,9 @@ async function guardarSesion(){
       const t=inv.find(x=>x.id===e.transId);
       const costoD=t?getCostoDisparo('vol',t.medida):0;
       if(t) t.disparosUsados=(t.disparosUsados||0)+d;
-      costoVol+=d*costoD;
-      transVol.push({transId:e.transId,disparos:d,costoDisparo:costoD});
+      costoVolHW+=d*costoD;
+      costoVol+=d*costoD*(med==='Carolina'?2.4:1); // ×2.4 cuando Carolina usa Volnewmer
+      transVol.push({transId:e.transId,disparos:d,costoDisparo:costoD}); // costoDisparo = HW real
     });
     _invVol=inv;
   }
@@ -2494,14 +2518,35 @@ async function guardarSesion(){
     }
     desglose={costoConsumibles,pagoCosmeto_limpieza:pagoCosmeto,utilidades,comisionRef:comRef,carolina,sneider};
   } else if(eq==='ultraformer'){
-    desglose=_desgloseEquipo('ultraformer',med,utilDespRef,cfg,comisionRef,descPctFinal>0);
+    if(med!=='Sneider'){
+      desglose=_desgloseEquipo('ultraformer',med,utilDespRef,cfg,comisionRef,descPctFinal>0);
+    } else {
+      // Nuevo modelo: $2.000/disparo — Sneider paga a Carolina
+      const hwU=disparosUltraTotal*700;
+      desglose={cobro_uso:costoUltra,ganancia_dueno:costoUltra-hwU,ganancia_otro:utilDespRef,comisionRef};
+    }
   } else if(eq==='volnewmer'){
-    desglose=_desgloseEquipo('volnewmer',med,utilDespRef,cfg,comisionRef,descPctFinal>0);
+    if(med!=='Carolina'){
+      desglose=_desgloseEquipo('volnewmer',med,utilDespRef,cfg,comisionRef,descPctFinal>0);
+    } else {
+      // Nuevo modelo: ×2.4 — Carolina paga a Sneider
+      desglose={cobro_uso:costoVol,ganancia_dueno:costoVol-costoVolHW,ganancia_otro:utilDespRef,comisionRef};
+    }
   } else if(eq==='volformer'){
     const utilU=costoTotal>0?(costoUltra/costoTotal)*utilDespRef:utilDespRef/2;
     const utilV=utilDespRef-utilU;
-    const dU=_desgloseEquipo('ultraformer',med,utilU,cfg,0,descPctFinal>0);
-    const dV=_desgloseEquipo('volnewmer',med,utilV,cfg,0,descPctFinal>0);
+    let dU,dV;
+    if(med!=='Sneider'){
+      dU=_desgloseEquipo('ultraformer',med,utilU,cfg,0,descPctFinal>0);
+    } else {
+      const hwU=disparosUltraTotal*700;
+      dU={cobro_uso:costoUltra,ganancia_dueno:costoUltra-hwU,ganancia_otro:utilU,comisionRef:0};
+    }
+    if(med!=='Carolina'){
+      dV=_desgloseEquipo('volnewmer',med,utilV,cfg,0,descPctFinal>0);
+    } else {
+      dV={cobro_uso:costoVol,ganancia_dueno:costoVol-costoVolHW,ganancia_otro:utilV,comisionRef:0};
+    }
     desglose={comisionRef,ultra:dU,vol:dV};
   }
 
