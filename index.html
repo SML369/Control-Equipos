@@ -252,6 +252,18 @@ tr:hover td{background:#f7fafc}
   </div>
 </div>
 
+<!-- MODAL DETALLE SESION -->
+<div class="modal-overlay hidden" id="modal-sesion-detalle">
+  <div class="modal">
+    <h2 id="det-titulo">Detalle de sesión</h2>
+    <div id="det-info" style="font-size:12px;color:#718096;text-align:center;margin-bottom:12px"></div>
+    <div id="det-disparos"></div>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="btn btn-outline" onclick="document.getElementById('modal-sesion-detalle').classList.add('hidden')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL AGREGAR TRANSDUCTOR -->
 <div class="modal-overlay hidden" id="modal-trans">
   <div class="modal">
@@ -2272,12 +2284,17 @@ function calcular(){
   const med=document.getElementById('f-medico').value;
   if(!eq||!med) return;
   const precioInput=parseInt(document.getElementById('f-precio').value)||0;
-  if(!precioInput) return;
+  // Sneider+Ultra: el precio se auto-calcula de disparos, puede estar vacío todavía
+  if(!precioInput&&!(med==='Sneider'&&eq==='ultraformer')) return;
   // costo disparos ultra
   const ultraTotal=ultraEntradas.reduce((a,e)=>a+(parseInt(e.disparos)||0),0);
   const costoUltraHW=ultraTotal*700; // costo real cartucho (siempre $700)
   const costoUltra=ultraTotal*(med==='Sneider'?2000:700); // costo financiero
   const ownerGanUltra=med==='Sneider'?(costoUltra-costoUltraHW):null; // ganancia neta Carolina cuando Sneider usa
+  // Auto-llenar precio cuando Sneider usa Ultraformer (siempre = disparos × $2.000)
+  if(med==='Sneider'&&eq==='ultraformer'&&ultraTotal>0){
+    document.getElementById('f-precio').value=costoUltra;
+  }
   // costo disparos vol
   let costoVol=0, costoVolHW=0;
   volEntradas.forEach(e=>{
@@ -2354,9 +2371,11 @@ function calcular(){
       _calcDistribucionEquipo(items,'ultraformer',med,utilDespRef,cfg,comisionRef>0,descPct>0);
     } else {
       // Nuevo modelo: $2.000/disparo — Sneider usa equipo de Carolina
-      items.push({lbl:`Cobro uso Ultra → Carolina ($2.000×${ultraTotal} disp.)`,val:cop(costoUltra),cls:'highlight'});
-      items.push({lbl:'Carolina recibe neto',val:cop(ownerGanUltra),cls:'success'});
-      items.push({lbl:'Sneider recibe',val:cop(utilDespRef),cls:'success'});
+      // Mostrar sólo el desglose de Carolina, sin precio cobrado / utilidad bruta confusos
+      items = [];
+      items.push({lbl:`Carolina cobra a Sneider ($2.000 × ${ultraTotal} disp.)`,val:cop(costoUltra),cls:'success'});
+      items.push({lbl:`Costo hardware cartuchos ($700 × ${ultraTotal} disp.)`,val:`-${cop(costoUltraHW)}`,cls:'warning'});
+      items.push({lbl:'Carolina recibe',val:cop(ownerGanUltra),cls:'highlight'});
     }
   } else if(eq==='volnewmer'){
     if(med==='Sneider'||med==='Cosmetologa'){
@@ -2376,10 +2395,10 @@ function calcular(){
     if(med==='Carolina'||med==='Cosmetologa'){
       _calcDistribucionEquipo(items,'ultraformer',med,utilUltra,cfg,false,descPct>0);
     } else {
-      const ownerGanU=ownerGanUltra!==null?(costoUltra-costoUltraHW)*((costoUltra/(costoUltra+costoVol||1))):0;
-      items.push({lbl:`Cobro uso Ultra → Carolina ($2.000×${ultraTotal} disp.)`,val:cop(costoUltra),cls:'highlight'});
-      items.push({lbl:'Carolina recibe neto',val:cop(ownerGanUltra),cls:'success'});
-      items.push({lbl:'Sneider recibe',val:cop(utilUltra),cls:'success'});
+      items.push({lbl:`Carolina cobra a Sneider ($2.000 × ${ultraTotal} disp.)`,val:cop(costoUltra),cls:'success'});
+      items.push({lbl:`Costo hardware cartuchos ($700 × ${ultraTotal} disp.)`,val:`-${cop(costoUltraHW)}`,cls:'warning'});
+      items.push({lbl:'Carolina recibe (Ultra)',val:cop(ownerGanUltra),cls:'highlight'});
+      items.push({lbl:'Sneider recibe (Ultra)',val:cop(utilUltra),cls:'success'});
     }
     items.push({lbl:'— Lado Volnewmer —',val:'',cls:''});
     if(med==='Sneider'||med==='Cosmetologa'){
@@ -2645,6 +2664,49 @@ function transLabelSesion(s){
   return partes.length?partes.join(', '):'-';
 }
 
+function verDetalleSesion(id){
+  const s=getSesiones().find(x=>x.id===id);
+  if(!s) return;
+  const invU=getInventario('ultra');
+  const invV=getInventario('vol');
+  document.getElementById('det-titulo').textContent=s.paciente;
+  document.getElementById('det-info').textContent=`${s.fecha}${s.hora?' · '+s.hora:''} · ${s.equipo} · ${s.medico}`;
+  let html='';
+  const tieneUltra=s.transUltra&&s.transUltra.length;
+  const tieneVol=s.transVol&&s.transVol.length;
+  if(tieneUltra){
+    html+=`<div style="font-weight:700;font-size:12px;color:#4a5568;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Ultraformer</div>`;
+    let totalU=0;
+    s.transUltra.forEach(tu=>{
+      const t=invU.find(x=>x.id===tu.transId);
+      const lbl=t?`${t.tipo||''} ${t.medida}`.trim():tu.transId;
+      totalU+=tu.disparos;
+      html+=`<div style="display:flex;justify-content:space-between;padding:5px 10px;background:#f7fafc;border-radius:7px;margin-bottom:4px;font-size:13px">
+        <span>${lbl}</span><span style="font-weight:700;color:#3730a3">${tu.disparos} disp.</span></div>`;
+    });
+    html+=`<div style="display:flex;justify-content:space-between;padding:5px 10px;font-size:12px;font-weight:700;color:#3730a3;margin-bottom:10px">
+      <span>Total Ultraformer</span><span>${totalU} disparos</span></div>`;
+  }
+  if(tieneVol){
+    html+=`<div style="font-weight:700;font-size:12px;color:#4a5568;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Volnewmer</div>`;
+    let totalV=0;
+    s.transVol.forEach(tv=>{
+      const t=invV.find(x=>x.id===tv.transId);
+      const lbl=t?t.medida:tv.transId;
+      totalV+=tv.disparos;
+      html+=`<div style="display:flex;justify-content:space-between;padding:5px 10px;background:#f7fafc;border-radius:7px;margin-bottom:4px;font-size:13px">
+        <span>${lbl}</span><span style="font-weight:700;color:#be185d">${tv.disparos} disp.</span></div>`;
+    });
+    html+=`<div style="display:flex;justify-content:space-between;padding:5px 10px;font-size:12px;font-weight:700;color:#be185d">
+      <span>Total Volnewmer</span><span>${totalV} disparos</span></div>`;
+  }
+  if(!tieneUltra&&!tieneVol){
+    html=`<div style="text-align:center;color:#a0aec0;font-size:13px;padding:16px">Sin disparos registrados en esta sesión.</div>`;
+  }
+  document.getElementById('det-disparos').innerHTML=html;
+  document.getElementById('modal-sesion-detalle').classList.remove('hidden');
+}
+
 function renderSesiones(){
   const filtEq=document.getElementById('fil-equipo').value;
   const filtMed=document.getElementById('fil-medico').value;
@@ -2688,6 +2750,7 @@ function renderSesiones(){
       <td style="font-size:10px;color:#718096">${s.registradoPor||'—'}</td>
       <td>${s.cuenta||'—'}</td>
       <td style="display:flex;gap:4px">
+        ${(s.transUltra?.length||s.transVol?.length)?`<button class="btn btn-outline btn-sm" onclick="verDetalleSesion(${s.id})" title="Ver disparos">👁</button>`:''}
         ${!esCosmetologa?`<button class="btn btn-warning btn-sm" onclick="pedirEditarSesion(${s.id})" title="Editar">✎</button>
         <button class="btn btn-danger btn-sm" onclick="pedirDeleteSesion(${s.id})">×</button>`:''}
       </td>
@@ -2842,6 +2905,7 @@ function renderPacientes(){
       const sesLabel=s.esPaquete
         ? `<span style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;padding:1px 6px;font-size:10px;color:#276749;font-weight:700" title="${s.notasPaquete||''}">${s.nsesion}/${s.totalSesiones}</span>`
         : `<span style="font-size:10px;color:#a0aec0">Única</span>`;
+      const disparosLabel=(s.transUltra?.length||s.transVol?.length)?`<span style="font-size:10px;cursor:pointer;color:#667eea;text-decoration:underline" onclick="verDetalleSesion(${s.id})">${transLabelSesion(s)}</span>`:'-';
       return `<tr>
         <td>${s.fecha}</td>
         <td><span class="tag tag-${s.equipo==='volformer'?'volformer':s.equipo==='volnewmer'?'vol':s.equipo==='ultraformer'?'ultra':'aqua'}">${s.equipo}</span></td>
@@ -2849,6 +2913,7 @@ function renderPacientes(){
         <td><span class="badge badge-${(s.medico||'').toLowerCase()}">${s.medico}</span>${s.cosmetologa?` <span style="font-size:10px;color:#718096">${s.cosmetologa}</span>`:''}</td>
         <td>${sesLabel}</td>
         <td>${cop(s.precioFinal||s.precio)}</td>
+        <td style="font-size:11px">${disparosLabel}</td>
         <td>${s.referido||'—'}</td>
         <td><button class="btn btn-danger btn-sm" onclick="pedirDeleteSesion(${s.id});renderPacientes()">×</button></td>
       </tr>`;
@@ -2862,7 +2927,7 @@ function renderPacientes(){
         <div style="text-align:right"><div style="font-size:17px;font-weight:700;color:#667eea">${cop(total)}</div><div style="font-size:10px;color:#a0aec0">total facturado</div></div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Fecha</th><th>Equipo</th><th>Zona</th><th>Médico</th><th>Sesión</th><th>Precio</th><th>Referido</th><th>Acc.</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Equipo</th><th>Zona</th><th>Médico</th><th>Sesión</th><th>Precio</th><th>Disparos</th><th>Referido</th><th>Acc.</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </div>`;
@@ -3034,7 +3099,8 @@ function renderFinanciero(){
     } else if(eq==='ultraformer'){
       const du=d.ultra||d;
       if(med==='Carolina'){carolinaTot+=du.ganancia_dueno||0; mantTot+=du.mantenimiento||0;}
-      else {sneiderTot+=du.ganancia_otro||0; carolinaTot+=du.ganancia_dueno||0;}
+      // Sneider usa Ultra de Carolina: Carolina recibe cobro bruto ($2.000×disp)
+      else {sneiderTot+=du.ganancia_otro||0; carolinaTot+=du.cobro_uso||du.ganancia_dueno||0;}
     } else if(eq==='volnewmer'){
       const dv=d.vol||d;
       if(med==='Sneider'){sneiderTot+=dv.ganancia_dueno||0; mantTot+=dv.mantenimiento||0;}
@@ -3046,7 +3112,7 @@ function renderFinanciero(){
         sneiderTot+=(dU.ganancia_otro||0)+(dV.ganancia_dueno||0);
       } else {
         sneiderTot+=(dV.ganancia_dueno||0)+(dU.ganancia_otro||0);
-        carolinaTot+=(dV.ganancia_otro||0)+(dU.ganancia_dueno||0);
+        carolinaTot+=(dV.ganancia_otro||0)+(dU.cobro_uso||dU.ganancia_dueno||0);
       }
       mantTot+=(dU.mantenimiento||0)+(dV.mantenimiento||0);
     }
@@ -3133,7 +3199,7 @@ function exportarExcelFinanciero(){
     } else if(eq==='ultraformer'){
       const du=d.ultra||d;
       if(med==='Carolina'){carolinaTot+=du.ganancia_dueno||0;mantTot+=du.mantenimiento||0;}
-      else{sneiderTot+=du.ganancia_otro||0;carolinaTot+=du.ganancia_dueno||0;}
+      else{sneiderTot+=du.ganancia_otro||0;carolinaTot+=du.cobro_uso||du.ganancia_dueno||0;}
     } else if(eq==='volnewmer'){
       const dv=d.vol||d;
       if(med==='Sneider'){sneiderTot+=dv.ganancia_dueno||0;mantTot+=dv.mantenimiento||0;}
@@ -3141,7 +3207,7 @@ function exportarExcelFinanciero(){
     } else if(eq==='volformer'){
       const dU=d.ultra||{};const dV=d.vol||{};
       if(med==='Carolina'){carolinaTot+=(dU.ganancia_dueno||0)+(dV.ganancia_otro||0);sneiderTot+=(dU.ganancia_otro||0)+(dV.ganancia_dueno||0);}
-      else{sneiderTot+=(dV.ganancia_dueno||0)+(dU.ganancia_otro||0);carolinaTot+=(dV.ganancia_otro||0)+(dU.ganancia_dueno||0);}
+      else{sneiderTot+=(dV.ganancia_dueno||0)+(dU.ganancia_otro||0);carolinaTot+=(dV.ganancia_otro||0)+(dU.cobro_uso||dU.ganancia_dueno||0);}
       mantTot+=(dU.mantenimiento||0)+(dV.mantenimiento||0);
     }
   });
@@ -3177,8 +3243,8 @@ function exportarExcelFinanciero(){
       car=d.carolina||0;sne=d.sneider||0;cosmLimp=d.pagoCosmeto_limpieza||0;
     } else if(s.equipo==='ultraformer'){
       const du=d.ultra||d;
-      car=s.medico==='Carolina'?du.ganancia_dueno||0:du.ganancia_dueno||0;
-      sne=s.medico!=='Carolina'?du.ganancia_otro||0:0;
+      if(s.medico==='Carolina'){car=du.ganancia_dueno||0;}
+      else{car=du.cobro_uso||du.ganancia_dueno||0; sne=du.ganancia_otro||0;}
     } else if(s.equipo==='volnewmer'){
       const dv=d.vol||d;
       sne=s.medico==='Sneider'?dv.ganancia_dueno||0:dv.ganancia_dueno||0;
