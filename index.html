@@ -375,6 +375,13 @@ tr:hover td{background:#f7fafc}
         </select>
       </div>
       <div class="form-group">
+        <label>Equipo (instancia)</label>
+        <select id="ca-instancia" onchange="actualizarHorasDisponibles()">
+          <option value="principal" selected>Principal</option>
+          <option value="evento">Adicional (evento)</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Paciente</label>
         <input type="text" id="ca-paciente" placeholder="Nombre completo">
       </div>
@@ -1773,7 +1780,10 @@ function renderInvBase(equipo){
     if(!grupos[k]) grupos[k]={tipo:t.tipo,medida:t.medida,items:[]};
     grupos[k].items.push(t);
   });
-  const statsHtml=`<div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+  const statsHtml=`<div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+    <button class="btn btn-outline btn-sm" onclick="recalcularDisparos('${equipo}')">Recalcular desde histórico</button>
+  </div>
+  <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
     <div class="stat-card"><div class="number">${activos.length}</div><div class="label">Activos</div></div>
     <div class="stat-card"><div class="number" style="color:#667eea">${totalDisp.toLocaleString('es-CO')}</div><div class="label">Disparos disponibles</div></div>
     <div class="stat-card"><div class="number" style="color:${prob?'#e53e3e':'#38a169'}">${prob}</div><div class="label">Stock bajo o agotado</div></div>
@@ -1836,6 +1846,25 @@ async function ajustarDisparos(equipo,id,actual){
   const t=inv.find(x=>x.id===id);
   if(!t) return;
   t.disparosUsados=nuevo;
+  mostrarCargando(true);
+  try{
+    await setInventario(equipo,inv);
+    if(equipo==='ultra') renderInvUltra(); else renderInvVol();
+  }catch(err){alert('Error al guardar: '+err.message);}
+  mostrarCargando(false);
+}
+
+async function recalcularDisparos(equipo){
+  if(!confirm('Esto recalculará los disparos usados de todos los transductores de este equipo a partir del historial de sesiones guardadas, sobreescribiendo los valores actuales. ¿Continuar?')) return;
+  const inv=getInventario(equipo);
+  const key=equipo==='ultra'?'transUltra':'transVol';
+  inv.forEach(t=>t.disparosUsados=0);
+  getSesiones().forEach(s=>{
+    (s[key]||[]).forEach(e=>{
+      const t=inv.find(x=>x.id===e.transId);
+      if(t) t.disparosUsados=(t.disparosUsados||0)+e.disparos;
+    });
+  });
   mostrarCargando(true);
   try{
     await setInventario(equipo,inv);
@@ -4111,7 +4140,7 @@ function renderAgendaAqua(){
     <tr>
       <td style="white-space:nowrap">${_fmtFecha(c.fecha)}</td>
       <td style="white-space:nowrap">${c.hora||''}</td>
-      <td>${c.paciente||''}</td>
+      <td>${c.paciente||''}${c.instancia==='evento'?' <span class="badge" style="background:#ede9fe;color:#5b21b6">Evento</span>':''}</td>
       <td>${c.documento||''}</td>
       <td>${c.celular||''}</td>
       <td><span class="badge badge-${c.doctor==='Carolina'?'carolina':'sneider'}">${c.doctor||''}</span></td>
@@ -4169,6 +4198,7 @@ function mostrarFormCita(cita=null){
   if(cita){
     document.getElementById('ca-fecha').value=cita.fecha||'';
     document.getElementById('ca-duracion').value=String(cita.duracion||60);
+    document.getElementById('ca-instancia').value=cita.instancia||'principal';
     _horaEdicion = cita.hora||'';
     document.getElementById('ca-paciente').value=cita.paciente||'';
     document.getElementById('ca-documento').value=cita.documento||'';
@@ -4188,6 +4218,7 @@ function mostrarFormCita(cita=null){
   } else {
     document.getElementById('ca-fecha').value=new Date().toISOString().split('T')[0];
     document.getElementById('ca-duracion').value='60';
+    document.getElementById('ca-instancia').value='principal';
     document.getElementById('ca-paciente').value='';
     document.getElementById('ca-documento').value='';
     document.getElementById('ca-celular').value='';
@@ -4227,8 +4258,9 @@ function horaEnMin(h){
 
 function generarHorasDisponibles(fecha, excludeId){
   const dur=parseInt(document.getElementById('ca-duracion').value)||60;
+  const instancia=document.getElementById('ca-instancia')?.value||'principal';
   const citasDelDia=_cacheAgendaAqua.filter(c=>
-    c.fecha===fecha && c.estado!=='Cancelada' && c.id!==(excludeId||'')
+    c.fecha===fecha && c.estado!=='Cancelada' && c.id!==(excludeId||'') && (c.instancia||'principal')===instancia
   );
   const slots=[];
   for(let m=7*60; m<=19*60; m+=15){
@@ -4272,10 +4304,12 @@ async function guardarCitaAqua(){
 
   const horaVal = document.getElementById('ca-hora').value;
   const durNueva = parseInt(document.getElementById('ca-duracion').value)||60;
+  const instanciaNueva = document.getElementById('ca-instancia').value||'principal';
   if(horaVal){
     const nMin = horaEnMin(horaVal);
     const conflicto = _cacheAgendaAqua.find(c=>{
       if(c.fecha!==fecha || c.estado==='Cancelada' || c.id===(_editCitaId||'')) return false;
+      if((c.instancia||'principal')!==instanciaNueva) return false;
       const cMin=horaEnMin(c.hora);
       const cDur=parseInt(c.duracion)||60;
       return nMin<cMin+cDur && nMin+durNueva>cMin;
@@ -4294,6 +4328,7 @@ async function guardarCitaAqua(){
     fecha,
     hora:          document.getElementById('ca-hora').value,
     duracion:      durNueva,
+    instancia:     instanciaNueva,
     paciente,
     documento:     document.getElementById('ca-documento').value.trim(),
     celular:       document.getElementById('ca-celular').value.trim(),
