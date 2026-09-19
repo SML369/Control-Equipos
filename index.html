@@ -2376,7 +2376,7 @@ function calcular(){
   if(eq==='aquapure'){
     const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===(zonasSeleccionadas[0]?.nombre||''));
     const costoConsumiblesBase=proto?proto.costoConsumibles:0;
-    const costoConsumibles=Math.max(0,costoConsumiblesBase-Math.max(0,precioROI-precioFinal));
+    const costoConsumibles=costoConsumiblesBase;
     const pagoCosmeto=proto?proto.pagoCosmeto:0;
     const utilidades=precioFinal-costoConsumibles-pagoCosmeto;
     items.push({lbl:'Consumibles Aquapure',val:cop(costoConsumibles),cls:'warning'});
@@ -2548,7 +2548,7 @@ async function guardarSesion(){
   if(eq==='aquapure'){
     const proto=PROTOCOLOS_AQUAPURE.find(p=>p.nombre===(zonasSeleccionadas[0]?.nombre||zona));
     const costoConsumiblesBase=proto?proto.costoConsumibles:0;
-    const costoConsumibles=Math.max(0,costoConsumiblesBase-Math.max(0,precioROI-precioFinal));
+    const costoConsumibles=costoConsumiblesBase;
     const pagoCosmeto=proto?proto.pagoCosmeto:0;
     const utilidades=precioFinal-costoConsumibles-pagoCosmeto;
     const cosmetologasRef=['Diana','Vero','Cristina'];
@@ -4460,7 +4460,7 @@ async function confirmarRealizarCita(){
   const proto = PROTOCOLOS_AQUAPURE.find(p=>p.nombre===c.tipo_limpieza);
   const costoConsumiblesBase = proto ? proto.costoConsumibles : 0;
   const precioROI = proto ? proto.precio : c.precio;
-  const costoConsumibles = Math.max(0, costoConsumiblesBase - Math.max(0, precioROI - c.precio));
+  const costoConsumibles = costoConsumiblesBase;
   const pagoCosmeto = proto ? proto.pagoCosmeto : 0;
   const utilidades = c.precio - costoConsumibles - pagoCosmeto;
   const carolina = c.doctor==='Carolina' ? utilidades : 0;
