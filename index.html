@@ -3153,6 +3153,22 @@ function renderFinanciero(){
     cosmetComisionTot[nombre].comision+=val;
   });
 
+  // Fondo Ultraformer: recompra de transductores ($700/disparo, cualquier doctor) + mantenimiento
+  let fondoDisparosUltra=0, fondoRecompra=0, fondoMant=0;
+  sesiones.filter(s=>s.equipo==='ultraformer'||s.equipo==='volformer').forEach(s=>{
+    const disparos=(s.transUltra||[]).reduce((a,t)=>a+(t.disparos||0),0);
+    const d=s.desglose||{};
+    const du=d.ultra||d;
+    fondoDisparosUltra+=disparos;
+    fondoRecompra+=disparos*700;
+    if(s.medico==='Sneider'){
+      // Sneider paga $2.000/disparo; el neto de Carolina es $1.300 y sobre ese neto va el % de mantenimiento
+      fondoMant+=disparos*(2000-700)*(s.cfg?.mant??getCfg().mant);
+    } else {
+      fondoMant+=du.mantenimiento||0;
+    }
+  });
+
   const byEq={};
   sesiones.forEach(s=>{
     if(!byEq[s.equipo]) byEq[s.equipo]={count:0,total:0};
@@ -3180,6 +3196,13 @@ function renderFinanciero(){
         <div class="result-item warning"><div class="val">${cop(mantTot)}</div><div class="lbl">Reserva mantenimiento</div></div>
         <div class="result-item warning"><div class="val">${cop(cosmetLimpiezaTot)}</div><div class="lbl">Pago cosmetólogas</div></div>
         <div class="result-item danger"><div class="val">${cop(totalDescuentos)}</div><div class="lbl">Total descuentos</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">Fondo Ultraformer — dinero a separar en cuenta</div>
+      <div class="result-grid">
+        <div class="result-item warning"><div class="val">${cop(fondoRecompra)}</div><div class="lbl">Recompra transductores ($700 × ${fondoDisparosUltra.toLocaleString('es-CO')} disparos)</div></div>
+        <div class="result-item warning"><div class="val">${cop(fondoMant)}</div><div class="lbl">Mantenimiento Ultraformer</div></div>
+        <div class="result-item highlight"><div class="val">${cop(fondoRecompra+fondoMant)}</div><div class="lbl">Total a separar</div></div>
       </div>
     </div>
     ${cosmetRows?`<div class="card"><div class="card-title">Ingresos cosmetólogas</div>
